@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>123 Words — Instruction Manual</title>
+  <link rel="stylesheet" href="_shared.css">
+  <style>
+    /* Manual-specific layout */
+    .section { margin-top: 48px; }
+    .section h2 { border-bottom: 3px solid var(--accent); padding-bottom: 8px; }
+
+    /* Screenshot frames */
+    .shot-row {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin: 24px 0;
+    }
+    .shot-row.center { justify-content: center; }
+    .shot {
+      flex: 0 0 auto;
+      text-align: center;
+    }
+    .shot img {
+      border-radius: 18px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      display: block;
+    }
+    .shot .caption {
+      font-size: 13px;
+      color: var(--secondary);
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    /* Wide screenshots (full phone) get max 220px width */
+    .shot.phone img { width: 220px; }
+
+    /* Cropped detail shots get more width */
+    .shot.detail img { width: 320px; }
+
+    /* Annotation pill labels */
+    .label {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 20px;
+      vertical-align: middle;
+      margin: 0 3px;
+    }
+    .label.r { background: var(--red); }
+    .label.g { background: var(--green); }
+    .label.o { background: var(--orange); }
+
+    /* Step list */
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li {
+      counter-increment: step;
+      padding: 10px 14px 10px 52px;
+      position: relative;
+      border-left: 3px solid var(--border);
+      margin-bottom: 10px;
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 12px;
+      top: 10px;
+      width: 26px; height: 26px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Combo sequence display */
+    .combo {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 16px 0;
+      font-weight: 700;
+    }
+    .combo-key {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: monospace;
+    }
+    .combo-arrow { color: var(--secondary); font-size: 20px; }
+
+    /* Feature table */
+    table.feat {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 15px;
+    }
+    table.feat th {
+      background: var(--accent-light);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 2px solid var(--accent);
+    }
+    table.feat td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    table.feat tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--accent-light);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .badge.ai { background: #fff3e0; color: #e65100; border-color: #e65100; }
+    .badge.emoji { background: #e8f5e9; color: #2e7d32; border-color: #2e7d32; }
+    .badge.sym { background: #f3e5f5; color: #6a1b9a; border-color: #6a1b9a; }
+  </style>
+</head>
+<body>
+
+<header class="page">
+  <span class="logo">
+    <span>1</span><span>2</span><span>3</span>
+  </span>
+  <h1 style="font-size:36px;font-weight:900;color:#fff;margin-bottom:4px;">WORDS</h1>
+  <p>Instruction Manual — v1.0 (Build 14)</p>
+</header>
+
+<nav class="top">
+  <a href="index.html">Home</a>
+  <a href="support.html">Support</a>
+  <a href="privacy.html">Privacy</a>
+</nav>
+
+<main>
+
+  <!-- ── TABLE OF CONTENTS ─────────────────────────────────────────── -->
+  <div class="note" style="margin-top:24px;">
+    <strong>Contents:</strong>
+    <a href="#first-launch">First Launch</a> ·
+    <a href="#main-screen">Main Screen</a> ·
+    <a href="#swiping">Swiping</a> ·
+    <a href="#play">Play</a> ·
+    <a href="#spell">Spell</a> ·
+    <a href="#case">Uppercase / Lowercase</a> ·
+    <a href="#pictures">Word Pictures</a> ·
+    <a href="#voices">Voices</a> ·
+    <a href="#parent">Parent Controls</a> ·
+    <a href="#wordlist">Word List</a>
+  </div>
+
+
+  <!-- ── 1. FIRST LAUNCH ──────────────────────────────────────────── -->
+  <div class="section" id="first-launch">
+    <h2>1. First Launch</h2>
+
+    <p>Every time the app starts you'll see a splash screen for about two seconds before the first word appears. This gives kids a clear signal that the app is loading.</p>
+
+    <div class="shot-row center">
+      <div class="shot phone">
+        <img src="img/manual/launch.png" alt="Launch screen">
+        <div class="caption">The launch screen — dark navy with 1·2·3 tiles</div>
+      </div>
+    </div>
+
+    <p>The dark navy background and the three coloured tiles match the app icon, so children recognise it immediately. The screen dismisses on its own — no tap needed.</p>
+  </div>
+
+
+  <!-- ── 2. MAIN SCREEN ────────────────────────────────────────────── -->
+  <div class="section" id="main-screen">
+    <h2>2. The Main Screen</h2>
+
+    <p>After the splash, the first word appears. Every element of the screen has one job.</p>
+
+    <div class="shot-row center">
+      <div class="shot phone">
+        <img src="img/manual/main_full.png" alt="Main screen showing WIG">
+        <div class="caption">The main screen — word, picture, tiles, and buttons</div>
+      </div>
+    </div>
+
+    <h3>Top Bar</h3>
+    <div class="shot-row center">
+      <div class="shot detail">
+        <img src="img/manual/topbar.png" alt="Top bar">
+        <div class="caption">ABC · title · Settings</div>
+      </div>
+    </div>
+    <table class="feat">
+      <tr><th>Control</th><th>What it does</th></tr>
+      <tr><td><span class="label">ABC</span> button</td><td>Toggles between UPPERCASE and lowercase letters. Tap once — all tiles and text switch instantly.</td></tr>
+      <tr><td><strong>123 Words</strong> (title)</td><td>Display only — no tap action.</td></tr>
+      <tr><td><strong>VOX</strong> button (top right)</td><td>Opens the <strong>Voices</strong> picker so you can change the reading voice.</td></tr>
+    </table>
+
+    <h3>Word Picture</h3>
+    <div class="shot-row center">
+      <div class="shot detail">
+        <img src="img/manual/picture_area.png" alt="Word picture area">
+        <div class="caption">Each word has its own picture — AI art, emoji, or system icon</div>
+      </div>
+    </div>
+    <p>Pictures come from three sources (see <a href="#pictures">Word Pictures</a> for details). AI-generated images float gently up and down while the word is displayed.</p>
+
+    <h3>Letter Tiles</h3>
+    <div class="shot-row center">
+      <div class="shot detail">
+        <img src="img/manual/tiles.png" alt="Letter tiles W I G">
+        <div class="caption">One tile per letter — the middle letter is highlighted during spelling</div>
+      </div>
+    </div>
+    <p>The word is always three letters. Each letter has its own rounded tile. During the <strong>Spell</strong> animation each tile lights up brighter as its letter is spoken.</p>
+
+    <h3>Buttons</h3>
+    <div class="shot-row center">
+      <div class="shot detail">
+        <img src="img/manual/buttons.png" alt="Play and Spell buttons">
+        <div class="caption">Play speaks the word; Spell names each letter</div>
+      </div>
+    </div>
+    <table class="feat">
+      <tr><th>Button</th><th>What it does</th></tr>
+      <tr><td>🔊 <strong>Play</strong></td><td>Speaks the whole word in one go. Tap again to replay.</td></tr>
+      <tr><td><strong>A|</strong> <strong>Spell</strong></td><td>Says each letter in sequence while the matching tile pulses brighter.</td></tr>
+    </table>
+  </div>
+
+
+  <!-- ── 3. SWIPING ────────────────────────────────────────────────── -->
+  <div class="section" id="swiping">
+    <h2>3. Swiping for a New Word</h2>
+
+    <p>Swipe anywhere on the screen — left or right — to jump to the next word. The background colour changes with every word, keeping the experience visually fresh.</p>
+
+    <div class="shot-row center">
+      <div class="shot phone">
+        <img src="img/manual/main_full.png" alt="WIG word" style="opacity:0.7;">
+        <div class="caption">← swipe →</div>
+      </div>
+      <div class="shot phone">
+        <img src="img/manual/word2.png" alt="Different word and colour">
+        <div class="caption">New word, new colour</div>
+      </div>
+    </div>
+
+    <p>The word is also spoken automatically when it first appears (after a short pause), so children hear the word without needing to tap anything.</p>
+
+    <div class="note">
+      <strong>Tip for parents:</strong> The word order is random each time, so children encounter new words every session without repetitive patterns.
+    </div>
+  </div>
+
+
+  <!-- ── 4. PLAY ───────────────────────────────────────────────────── -->
+  <div class="section" id="play">
+    <h2>4. Hearing the Word — Play</h2>
+
+    <p>Tap the <strong>Play</strong> button to hear the word spoken clearly. The app uses the device's built-in text-to-speech engine, so the voice quality is high and the pronunciation is natural.</p>
+
+    <ul>
+      <li>You can tap <strong>Play</strong> as many times as you like — each tap replays the word from the start.</li>
+      <li>The word is also spoken automatically when a new word appears (0.6 second delay).</li>
+      <li>To change which voice speaks, tap the <strong>VOX</strong> button — see <a href="#voices">Voices</a>.</li>
+    </ul>
+  </div>
+
+
+  <!-- ── 5. SPELL ──────────────────────────────────────────────────── -->
+  <div class="section" id="spell">
+    <h2>5. Spelling the Word — Spell</h2>
+
+    <p>Tap <strong>Spell</strong> to hear each letter spoken one at a time. As each letter is said, its tile briefly brightens so children can follow along visually.</p>
+
+    <div class="shot-row center">
+      <div class="shot phone">
+        <img src="img/manual/spell_mode.png" alt="Spelling mode — tiles lighting up">
+        <div class="caption">Each tile lights up as its letter is spoken</div>
+      </div>
+    </div>
+
+    <p>After all three letters have been spelled, the full word is spoken as a recap — so the session for each word ends with the complete pronunciation.</p>
+
+    <div class="note">
+      <strong>Learning sequence:</strong> Swipe → word is spoken automatically → tap Spell to hear letters → tap Play to hear the word again. No reading required — everything is audio-driven.
+    </div>
+  </div>
+
+
+  <!-- ── 6. UPPERCASE / LOWERCASE ─────────────────────────────────── -->
+  <div class="section" id="case">
+    <h2>6. Uppercase / Lowercase</h2>
+
+    <p>Tap the <span class="label">ABC</span> button in the top-left corner to toggle between capital and lowercase letters. The change applies instantly to the tiles.</p>
+
+    <table class="feat">
+      <tr><th>Mode</th><th>Tile display</th><th>Best for</th></tr>
+      <tr><td><strong>ABC</strong> (uppercase)</td><td>W · I · G</td><td>Early learners seeing letters for the first time</td></tr>
+      <tr><td><strong>abc</strong> (lowercase)</td><td>w · i · g</td><td>Kids who know capitals and are learning lowercase forms</td></tr>
+    </table>
+
+    <p>The setting is not saved between sessions — the app always opens in uppercase so it's consistent for the youngest readers.</p>
+  </div>
+
+
+  <!-- ── 7. WORD PICTURES ──────────────────────────────────────────── -->
+  <div class="section" id="pictures">
+    <h2>7. Word Pictures</h2>
+
+    <p>Every word has an image. Pictures come from three sources, shown with a badge if you flip them over.</p>
+
+    <table class="feat">
+      <tr><th>Source</th><th>Badge</th><th>Description</th></tr>
+      <tr>
+        <td>AI-generated</td>
+        <td><span class="badge ai">AI</span></td>
+        <td>Custom illustration created with DALL-E 3 specifically for this app. These images float gently while displayed.</td>
+      </tr>
+      <tr>
+        <td>OpenMoji</td>
+        <td><span class="badge emoji">Emoji</span></td>
+        <td>Open-source emoji artwork (openmoji.org). Clean, colourful, recognisable.</td>
+      </tr>
+      <tr>
+        <td>SF Symbol</td>
+        <td><span class="badge sym">Symbol</span></td>
+        <td>Apple system icons, used as a fallback when no other image is available.</td>
+      </tr>
+    </table>
+
+    <h3>Revealing Image Provenance</h3>
+    <p>Place <strong>two fingers simultaneously</strong> on any word picture to flip it over. The back of the card shows:</p>
+    <ul>
+      <li>The source badge (AI / Emoji / Symbol)</li>
+      <li>A short description of where the image came from</li>
+    </ul>
+    <p>Tap anywhere else, or two-finger tap again, to flip back to the picture.</p>
+
+    <div class="note">
+      <strong>Note:</strong> The floating animation on AI images is intentional — it signals to children that the picture is "alive" and relates to the word being shown.
+    </div>
+  </div>
+
+
+  <!-- ── 8. VOICES ────────────────────────────────────────────────── -->
+  <div class="section" id="voices">
+    <h2>8. Choosing a Voice</h2>
+
+    <p>Tap the <strong>VOX</strong> button in the top-right corner to open the <strong>Voices</strong> picker. You can choose from any text-to-speech voice installed on the device.</p>
+
+    <ul>
+      <li>The default voice is the system default English voice.</li>
+      <li>Additional voices can be downloaded in <strong>Settings → Accessibility → Spoken Content → Voices</strong>.</li>
+      <li>Higher-quality (Enhanced / Premium) voices sound more natural and are recommended for young learners.</li>
+      <li>Your chosen voice is remembered between sessions.</li>
+    </ul>
+
+    <div class="note">
+      <strong>For best results:</strong> Download the <em>Enhanced</em> or <em>Premium</em> version of an English voice. On iPhone: Settings → Accessibility → Spoken Content → Voices → English → choose a voice → tap the download icon.
+    </div>
+  </div>
+
+
+  <!-- ── 9. PARENT CONTROLS ────────────────────────────────────────── -->
+  <div class="section" id="parent">
+    <h2>9. Parent Controls</h2>
+
+    <p>A hidden settings area gives parents access to configuration options. It is protected by a tap sequence that young children are unlikely to discover by accident.</p>
+
+    <h3>Unlocking Settings</h3>
+    <p>While viewing <strong>any word with 3 or more letters</strong>, tap this exact sequence within 8 seconds:</p>
+
+    <div class="combo">
+      <span class="combo-key">1st letter tile</span>
+      <span class="combo-arrow">→</span>
+      <span class="combo-key">Spell</span>
+      <span class="combo-arrow">→</span>
+      <span class="combo-key">3rd letter tile</span>
+      <span class="combo-arrow">→</span>
+      <span class="combo-key">Play</span>
+      <span class="combo-arrow">→</span>
+      <span class="combo-key">2nd letter tile</span>
+    </div>
+
+    <p><strong>Example</strong> — if the word is <em>CAT</em>: tap <strong>C</strong> → <strong>Spell</strong> → <strong>T</strong> → <strong>Play</strong> → <strong>A</strong>.</p>
+
+    <div class="note">
+      <strong>Important:</strong> As soon as you tap the first letter tile, all normal functions (speech, swipe) are locked until the combo succeeds or the 8-second window expires. This prevents a partial combo from disrupting the child's session.
+    </div>
+
+    <h3>Settings Options</h3>
+
+    <table class="feat">
+      <tr><th>Setting</th><th>Description</th></tr>
+      <tr>
+        <td><strong>Word List</strong></td>
+        <td>View all words in the app, see which ones have images, and browse the Image Gallery.</td>
+      </tr>
+      <tr>
+        <td><strong>Image Gallery</strong></td>
+        <td>A filterable grid of every word image. Filter by All / AI / Emoji / Symbol / Missing. Useful for checking coverage and image quality.</td>
+      </tr>
+      <tr>
+        <td><strong>Parent Onboarding</strong></td>
+        <td>Re-read the welcome guide that explains how the combo works and what each button does.</td>
+      </tr>
+    </table>
+
+    <h3>Image Gallery</h3>
+    <p>The gallery shows all ~220 words with their images and provenance badges. Use the filter tabs at the top:</p>
+    <ul>
+      <li><strong>All</strong> — every word</li>
+      <li><span class="badge ai">AI</span> — AI-generated images only</li>
+      <li><span class="badge emoji">Emoji</span> — OpenMoji images only</li>
+      <li><span class="badge sym">Symbol</span> — SF Symbol fallbacks</li>
+      <li><strong>Missing</strong> — words with no image (target: zero)</li>
+    </ul>
+    <p>Use the search bar at the top of the gallery to find a specific word instantly.</p>
+  </div>
+
+
+  <!-- ── 10. WORD LIST ─────────────────────────────────────────────── -->
+  <div class="section" id="wordlist">
+    <h2>10. Word List</h2>
+
+    <p>The app includes over 220 three-letter words chosen for clarity and child-friendliness. The list covers:</p>
+
+    <table class="feat">
+      <tr><th>Category</th><th>Examples</th></tr>
+      <tr><td>Animals</td><td>ant, bat, bee, cat, cow, dog, elk, emu, fox, hen, jay, owl, pig, ram, yak</td></tr>
+      <tr><td>Body &amp; People</td><td>arm, ear, eye, lip, man, men, rib, toe</td></tr>
+      <tr><td>Food &amp; Drink</td><td>bun, fig, ham, jam, oat, pie, rye, tea</td></tr>
+      <tr><td>Nature</td><td>dew, elm, fog, ice, ivy, mud, oak, sky, sun</td></tr>
+      <tr><td>Objects &amp; Tools</td><td>axe, bag, bin, box, bus, can, cup, jar, jug, key, kit, lab, oar, urn</td></tr>
+      <tr><td>Actions &amp; Play</td><td>dig, hop, jog, run, ski, tap, zip</td></tr>
+      <tr><td>Other common words</td><td>big, few, hot, new, old, red, wet</td></tr>
+    </table>
+
+    <p>Words are presented in random order each session. The random order is re-shuffled each time the app launches, so each session feels different.</p>
+
+    <div class="note">
+      <strong>Excluded words:</strong> Words that could be offensive, confusing, or age-inappropriate (e.g. <em>gun</em>) have been deliberately omitted.
+    </div>
+  </div>
+
+
+  <!-- ── QUICK REFERENCE ──────────────────────────────────────────── -->
+  <div class="section" id="reference">
+    <h2>Quick Reference</h2>
+
+    <table class="feat">
+      <tr><th>Gesture / Control</th><th>Action</th></tr>
+      <tr><td>Swipe left or right</td><td>Go to next word</td></tr>
+      <tr><td>Tap <strong>Play</strong></td><td>Hear the whole word</td></tr>
+      <tr><td>Tap <strong>Spell</strong></td><td>Hear each letter, then the whole word</td></tr>
+      <tr><td>Tap <span class="label">ABC</span></td><td>Toggle uppercase / lowercase</td></tr>
+      <tr><td>Tap <strong>VOX</strong></td><td>Open voice picker</td></tr>
+      <tr><td>Two-finger tap on picture</td><td>Flip to see image source</td></tr>
+      <tr><td>Tap 1st letter → Spell → 3rd → Play → 2nd</td><td>Unlock parent settings</td></tr>
+    </table>
+  </div>
+
+</main>
+
+<footer class="page">
+  <p>123 Words v1.0 · For iOS 17 and later · Made with love for little readers</p>
+  <a href="privacy.html">Privacy</a>
+  <a href="support.html">Support</a>
+  <a href="https://github.com/billdonner/123words">GitHub</a>
+</footer>
+
+</body>
+</html>
