@@ -1,0 +1,277 @@
+{
+  "appIconReference" : "FA2A9F0A-0CEE-4C02-9F8F-B19CCD3A3513.png",
+  "appStoreName" : "123 Words",
+  "exportPreset" : {
+    "displayName" : "iPhone 6.9″ — 1320 × 2868",
+    "id" : "iphone-6.9",
+    "pixelHeight" : 2868,
+    "pixelWidth" : 1320
+  },
+  "items" : [
+    {
+      "panel" : {
+        "_0" : {
+          "caption" : {
+            "position" : "top",
+            "secondaryText" : "Ages 2–7 · one shared timer",
+            "text" : "Read, spell, race the clock"
+          },
+          "framing" : {
+            "bare" : {
+              "cornerRadius" : 32
+            }
+          },
+          "id" : "A0AB8476-2D64-45C4-8321-60F65FFC9CB7",
+          "includedInGallery" : true,
+          "overlays" : [
+            {
+              "centerXFraction" : 0.5,
+              "centerYFraction" : 0.9,
+              "content" : {
+                "text" : {
+                  "_0" : {
+                    "color" : {
+                      "blue" : 0,
+                      "green" : 0.12941176470588237,
+                      "opacity" : 1,
+                      "red" : 0.2901960784313726
+                    },
+                    "pillColor" : {
+                      "blue" : 0.23529411764705882,
+                      "green" : 0.788235294117647,
+                      "opacity" : 1,
+                      "red" : 1
+                    },
+                    "role" : "pill",
+                    "sizeFraction" : 0.019,
+                    "text" : "Spell · Scramble · Listen · Match · Count"
+                  }
+                }
+              },
+              "id" : "EF7FB070-DE15-4AAA-8D21-5CBBBC933C31",
+              "rotationDegrees" : 0
+            }
+          ],
+          "screenshotReference" : "F3156F8F-58A1-4A24-B501-ADDC3D1E3199.png",
+          "screenshotTransform" : {
+            "blurRadius" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
+            "rotationDegrees" : 0,
+            "scale" : 1,
+            "swivelDegrees" : 0
+          }
+        }
+      }
+    },
+    {
+      "panel" : {
+        "_0" : {
+          "caption" : {
+            "position" : "top",
+            "text" : "Tap the picture you hear"
+          },
+          "framing" : {
+            "bare" : {
+              "cornerRadius" : 32
+            }
+          },
+          "id" : "C9B87CD9-C048-4DC1-8F4E-91DFD949345B",
+          "includedInGallery" : true,
+          "overlays" : [
+
+          ],
+          "screenshotReference" : "147663BB-6D8A-4553-8629-90EF20C78330.png",
+          "screenshotTransform" : {
+            "blurRadius" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
+            "rotationDegrees" : 0,
+            "scale" : 1,
+            "swivelDegrees" : 0
+          }
+        }
+      }
+    },
+    {
+      "panel" : {
+        "_0" : {
+          "caption" : {
+            "position" : "top",
+            "text" : "Counting sneaks in too"
+          },
+          "framing" : {
+            "bare" : {
+              "cornerRadius" : 32
+            }
+          },
+          "id" : "64224BB3-14CE-41EC-B1B2-6046EB8DE57A",
+          "includedInGallery" : true,
+          "overlays" : [
+
+          ],
+          "screenshotReference" : "16CEF9C5-A221-4472-9EF1-33E71376BD6E.png",
+          "screenshotTransform" : {
+            "blurRadius" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
+            "rotationDegrees" : 0,
+            "scale" : 1,
+            "swivelDegrees" : 0
+          }
+        }
+      }
+    },
+    {
+      "panel" : {
+        "_0" : {
+          "caption" : {
+            "position" : "top",
+            "text" : "Spell it before the buzzer"
+          },
+          "framing" : {
+            "bare" : {
+              "cornerRadius" : 32
+            }
+          },
+          "id" : "16FC4A71-6E49-48F5-AB64-B75CA3EB4D47",
+          "includedInGallery" : true,
+          "overlays" : [
+
+          ],
+          "screenshotReference" : "FD6E3AD0-0E73-4BFE-85D1-23F84F07A9A7.png",
+          "screenshotTransform" : {
+            "blurRadius" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
+            "rotationDegrees" : 0,
+            "scale" : 1,
+            "swivelDegrees" : 0
+          }
+        }
+      }
+    },
+    {
+      "panel" : {
+        "_0" : {
+          "caption" : {
+            "position" : "top",
+            "text" : "Stars for every personal best"
+          },
+          "framing" : {
+            "bare" : {
+              "cornerRadius" : 32
+            }
+          },
+          "id" : "8D02D36B-847F-4F0F-8BA9-C167941F7AE7",
+          "includedInGallery" : true,
+          "overlays" : [
+
+          ],
+          "screenshotReference" : "C8F0ABDE-58F2-4250-BF63-246279A9DF1F.png",
+          "screenshotTransform" : {
+            "blurRadius" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
+            "rotationDegrees" : 0,
+            "scale" : 1,
+            "swivelDegrees" : 0
+          }
+        }
+      }
+    },
+    {
+      "panel" : {
+        "_0" : {
+          "caption" : {
+            "position" : "top",
+            "secondaryPosition" : "bottom",
+            "secondaryText" : "No ads. No accounts. Works offline",
+            "text" : "220+ words read aloud, untimed"
+          },
+          "framing" : {
+            "bare" : {
+              "cornerRadius" : 32
+            }
+          },
+          "id" : "35D3DF34-2853-46AD-BC49-DC5C06745677",
+          "includedInGallery" : true,
+          "overlays" : [
+
+          ],
+          "screenshotReference" : "CD8140BD-33F7-4DA4-8129-0649413D7EE3.png",
+          "screenshotTransform" : {
+            "blurRadius" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
+            "rotationDegrees" : 0,
+            "scale" : 1,
+            "swivelDegrees" : 0
+          }
+        }
+      }
+    },
+    {
+      "panel" : {
+        "_0" : {
+          "framing" : {
+            "bare" : {
+              "cornerRadius" : 32
+            }
+          },
+          "id" : "0C6F6C18-ED2A-4AD7-BDB3-3997512850A2",
+          "includedInGallery" : true,
+          "overlays" : [
+
+          ],
+          "screenshotReference" : "222AF0A7-CED5-4CAF-BE07-0DA2F5019D0D.png",
+          "screenshotTransform" : {
+            "blurRadius" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
+            "rotationDegrees" : 0,
+            "scale" : 1,
+            "swivelDegrees" : 0
+          }
+        }
+      }
+    }
+  ],
+  "schemaVersion" : 3,
+  "style" : {
+    "background" : {
+      "linearGradient" : {
+        "_0" : {
+          "angleDegrees" : 160,
+          "endColor" : {
+            "blue" : 0.55,
+            "green" : 0.2,
+            "opacity" : 1,
+            "red" : 0.93
+          },
+          "startColor" : {
+            "blue" : 0.2,
+            "green" : 0.45,
+            "opacity" : 1,
+            "red" : 1
+          }
+        }
+      }
+    },
+    "captionAlignment" : "center",
+    "captionColor" : {
+      "blue" : 1,
+      "green" : 1,
+      "opacity" : 1,
+      "red" : 1
+    },
+    "captionFontFamily" : {
+      "named" : {
+        "_0" : "Arial Rounded MT Bold"
+      }
+    },
+    "captionFontSizeFraction" : 0.046,
+    "captionWeight" : "bold",
+    "presetID" : "playful"
+  }
+}
