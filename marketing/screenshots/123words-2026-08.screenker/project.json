@@ -13,7 +13,7 @@
         "_0" : {
           "caption" : {
             "position" : "top",
-            "secondaryText" : "Ages 2–7 · one shared timer",
+            "secondaryText" : "Ages 2–7 · five games, one race",
             "text" : "Read, spell, race the clock"
           },
           "framing" : {
@@ -156,6 +156,35 @@
         "_0" : {
           "caption" : {
             "position" : "top",
+            "text" : "Rearrange the letters into words"
+          },
+          "framing" : {
+            "bare" : {
+              "cornerRadius" : 32
+            }
+          },
+          "id" : "0C6F6C18-ED2A-4AD7-BDB3-3997512850A2",
+          "includedInGallery" : true,
+          "overlays" : [
+
+          ],
+          "screenshotReference" : "222AF0A7-CED5-4CAF-BE07-0DA2F5019D0D.png",
+          "screenshotTransform" : {
+            "blurRadius" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
+            "rotationDegrees" : 0,
+            "scale" : 1,
+            "swivelDegrees" : 0
+          }
+        }
+      }
+    },
+    {
+      "panel" : {
+        "_0" : {
+          "caption" : {
+            "position" : "top",
             "text" : "Stars for every personal best"
           },
           "framing" : {
@@ -200,31 +229,6 @@
 
           ],
           "screenshotReference" : "CD8140BD-33F7-4DA4-8129-0649413D7EE3.png",
-          "screenshotTransform" : {
-            "blurRadius" : 0,
-            "offsetX" : 0,
-            "offsetY" : 0,
-            "rotationDegrees" : 0,
-            "scale" : 1,
-            "swivelDegrees" : 0
-          }
-        }
-      }
-    },
-    {
-      "panel" : {
-        "_0" : {
-          "framing" : {
-            "bare" : {
-              "cornerRadius" : 32
-            }
-          },
-          "id" : "0C6F6C18-ED2A-4AD7-BDB3-3997512850A2",
-          "includedInGallery" : true,
-          "overlays" : [
-
-          ],
-          "screenshotReference" : "222AF0A7-CED5-4CAF-BE07-0DA2F5019D0D.png",
           "screenshotTransform" : {
             "blurRadius" : 0,
             "offsetX" : 0,
