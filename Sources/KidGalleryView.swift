@@ -63,7 +63,7 @@ private struct KidGalleryCell: View {
                 }
                 .frame(height: cellHeight)
 
-                Text(word.uppercased())
+                Text(kidCase(word))
                     .font(.system(size: fontSize, weight: .black, design: .rounded))
                     .foregroundStyle(.primary)
             }

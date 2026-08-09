@@ -385,7 +385,9 @@ struct WordDisplayView: View {
             let boxWidth = min(rawWidth, maxBox)
             let fontSize = boxWidth * 0.72
             let boxHeight = tileHeight
-            let displayWord = isUppercase ? word.uppercased() : word.lowercased()
+            // Never lower-case the pronoun "I" — it used to render as "i".
+            let displayWord = word == "I" ? "I"
+                : (isUppercase ? word.uppercased() : word.lowercased())
 
             HStack(spacing: gap) {
                 ForEach(Array(displayWord.enumerated()), id: \.offset) { index, letter in

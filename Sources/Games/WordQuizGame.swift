@@ -60,7 +60,7 @@ struct WordQuizGame: View {
                         // read and is noise to one who can't. It now
                         // appears only once they've chosen correctly, as
                         // the sound-to-print pairing payoff.
-                        Text(rightIndex == nil ? "Tap to hear again" : answer.uppercased())
+                        Text(rightIndex == nil ? "Tap to hear again" : kidCase(answer))
                             .font(.system(size: rightIndex == nil
                                           ? (isIPad ? 20 : 16)
                                           : (isIPad ? 38 : 28),
@@ -91,7 +91,7 @@ struct WordQuizGame: View {
                 .padding(.bottom, 30)
             }
 
-            if showCheer { GameCheer(message: "Yes!\nThat's \(answer.uppercased())!") }
+            if showCheer { GameCheer(message: "Yes!\nThat's \(kidCase(answer))!") }
         }
         .onAppear { newRound(initial: true) }
         .onDisappear {
@@ -151,6 +151,7 @@ struct WordQuizGame: View {
             rightIndex = idx
             hintIndex = nil
             Haptics.success()
+            WordProgress.shared.recordCorrect(answer)
             if inRace {
                 // "Correct!" + race bump, then advance. Was 0.85s, which
                 // is under the beat a child needs to register what they
@@ -176,6 +177,7 @@ struct WordQuizGame: View {
             wrongIndex = idx
             Haptics.wrong()
             misses += 1
+            WordProgress.shared.recordMiss(answer)
             if misses >= 2 {
                 hintIndex = choices.firstIndex(of: answer)
                 speech.speak(answer)

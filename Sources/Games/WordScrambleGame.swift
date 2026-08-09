@@ -65,7 +65,7 @@ struct WordScrambleGame: View {
                 HStack(spacing: 12) {
                     ForEach(Array(scrambled.enumerated()), id: \.offset) { idx, letter in
                         GameLetterTile(
-                            letter: letter.uppercased(),
+                            letter: kidCase(letter),
                             size: isIPad ? 90 : 70,
                             highlighted: hintIndex == idx,
                             dimmed: used.contains(idx),
@@ -77,7 +77,7 @@ struct WordScrambleGame: View {
                 .padding(.bottom, 40)
             }
 
-            if showCheer { GameCheer(message: "Unscrambled!\n\(word.uppercased())") }
+            if showCheer { GameCheer(message: "Unscrambled!\n\(kidCase(word))") }
         }
         .onAppear { startRound(initial: true) }
         .onDisappear {
@@ -114,7 +114,7 @@ struct WordScrambleGame: View {
     }
 
     private func slot(at i: Int) -> some View {
-        let letters = Array(word.uppercased())
+        let letters = Array(kidCase(word))
         let revealed = i < used.count
         return ZStack {
             RoundedRectangle(cornerRadius: 14)
@@ -148,6 +148,7 @@ struct WordScrambleGame: View {
                 let g = roundGen
                 locked = true
                 Haptics.success()
+                WordProgress.shared.recordCorrect(word)
                 if inRace {
                     onCorrect()
                     // Let the final letter finish, say "Correct!",
@@ -178,6 +179,7 @@ struct WordScrambleGame: View {
             wrongIndex = idx
             Haptics.wrong()
             misses += 1
+            WordProgress.shared.recordMiss(word)
             let g = roundGen
             if misses >= 2 {
                 hintIndex = scrambled.indices.first {
@@ -200,7 +202,8 @@ struct WordScrambleGame: View {
         misses = 0
         hintIndex = nil
         Haptics.prepare()
-        let new = GameWordPool.random(excluding: initial ? nil : word)
+        // Decodable words only — see SpellItGame.
+        let new = GameWordPool.random(excluding: initial ? nil : word, decodableOnly: true)
         word = new
         used = []
         colorIndex = randomGameColor(excluding: colorIndex)

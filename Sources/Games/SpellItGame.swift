@@ -84,7 +84,7 @@ struct SpellItGame: View {
                 LazyVGrid(columns: kbCols, spacing: gap) {
                     ForEach(Array(keyboard.enumerated()), id: \.offset) { idx, letter in
                         GameLetterTile(
-                            letter: letter.uppercased(),
+                            letter: kidCase(letter),
                             size: tile,
                             highlighted: hintIndex == idx,
                             dimmed: typed.contains(idx),
@@ -97,7 +97,7 @@ struct SpellItGame: View {
                 .padding(.bottom, 30)
             }
 
-            if showCheer { GameCheer(message: "Yay!\nYou spelled \(word.uppercased())!") }
+            if showCheer { GameCheer(message: "Yay!\nYou spelled \(kidCase(word))!") }
         }
         }
         .onAppear { startRound(initial: true) }
@@ -137,7 +137,7 @@ struct SpellItGame: View {
     }
 
     private func slot(at i: Int) -> some View {
-        let letters = Array(word.uppercased())
+        let letters = Array(kidCase(word))
         let revealed = i < typed.count
         return ZStack {
             RoundedRectangle(cornerRadius: 14)
@@ -174,6 +174,7 @@ struct SpellItGame: View {
                 streak += 1
                 locked = true
                 Haptics.success()
+                WordProgress.shared.recordCorrect(word)
                 let g = roundGen
                 if inRace {
                     onCorrect()
@@ -215,6 +216,7 @@ struct SpellItGame: View {
             wrongIndex = idx
             Haptics.wrong()
             misses += 1
+            WordProgress.shared.recordMiss(word)
             let g = roundGen
             if misses >= 2 {
                 hintIndex = keyboard.indices.first {
@@ -237,7 +239,9 @@ struct SpellItGame: View {
         misses = 0
         hintIndex = nil
         Haptics.prepare()
-        let new = GameWordPool.random(excluding: initial ? nil : word)
+        // Heart words are irregular, so they never appear in a game that
+        // asks the child to build them letter by letter.
+        let new = GameWordPool.random(excluding: initial ? nil : word, decodableOnly: true)
         word = new
         typed = []
         colorIndex = randomGameColor(excluding: colorIndex)

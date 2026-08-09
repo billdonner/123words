@@ -163,6 +163,30 @@ struct SettingsView: View {
 
                 Section {
                     HStack {
+                        Text("Words mastered")
+                        Spacer()
+                        Text("\(WordProgress.shared.masteredCount)")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Words in rotation")
+                        Spacer()
+                        Text("\(WordProgress.activeSetSize)")
+                            .foregroundStyle(.secondary)
+                    }
+                    Button(role: .destructive) {
+                        WordProgress.shared.reset()
+                    } label: {
+                        Label("Start the word list over", systemImage: "arrow.counterclockwise")
+                    }
+                } header: {
+                    Text("Progress")
+                } footer: {
+                    Text("Only a handful of words are in play at once, and a word is only retired after three correct answers — a word has to come round many times before it sticks. New words are introduced as earlier ones are mastered.")
+                }
+
+                Section {
+                    HStack {
                         Text("Active words")
                         Spacer()
                         Text("\(wordStore.activeWords.count)")

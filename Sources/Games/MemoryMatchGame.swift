@@ -157,7 +157,7 @@ struct MemoryMatchGame: View {
                             .strokeBorder(.white.opacity(0.45), lineWidth: 3)
                     )
                 if card.face == .word {
-                    Text(card.word.uppercased())
+                    Text(kidCase(card.word))
                         .font(.system(size: size * 0.32, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                         .minimumScaleFactor(0.4)
@@ -200,6 +200,7 @@ struct MemoryMatchGame: View {
                     guard g == roundGen else { return }
                     cards[first].matched = true
                     cards[idx].matched = true
+                    WordProgress.shared.recordCorrect(a.word)
                     firstFlipped = nil
                     locked = false
                     if inRace {

@@ -182,21 +182,47 @@ struct GameCheer: View {
     }
 }
 
+/// Renders a word in the case the parent chose, and never lower-cases the
+/// pronoun "I" — the reader used to print it as "i", which is a literacy
+/// error for an app to be modelling.
+///
+/// The five games all hard-coded `.uppercased()`, so a child switched to
+/// lowercase in the reader was hit with capitals the moment they opened a
+/// game, breaking exactly the case-invariance mapping the toggle exists to
+/// build. Games are short-lived views, so reading the default directly is
+/// enough — the setting can only change while no game is on screen.
+func kidCase(_ word: String) -> String {
+    if word == "I" { return "I" }
+    let upper = UserDefaults.standard.object(forKey: "isUppercase") as? Bool ?? true
+    return upper ? word.uppercased() : word.lowercased()
+}
+
 // Word pool helpers — only words that have pictures
 enum GameWordPool {
+    /// One-letter words are excluded: "spelling" a single letter is a null
+    /// trial, and both spelling games size their UI off `word.count`.
     static var withImages: [String] {
         WordStore.words.filter {
-            UIImage(named: $0) != nil || wordDefinitiveSymbol[$0] != nil
+            $0.count >= 2 && (UIImage(named: $0) != nil || wordDefinitiveSymbol[$0] != nil)
         }
     }
-    static func random(length: Int? = nil, excluding: String? = nil) -> String {
-        var pool = withImages
+
+    /// Words the spelling games may use. Heart words (`two`, `eye`, `who`)
+    /// are irregular by definition, so asking a child to build them
+    /// letter-by-letter teaches a spelling-sound mapping that isn't true.
+    static var spellable: [String] {
+        withImages.filter { WordStore.decodableWords.contains($0) }
+    }
+
+    static func random(length: Int? = nil,
+                       excluding: String? = nil,
+                       decodableOnly: Bool = false) -> String {
+        var pool = decodableOnly ? spellable : withImages
         if let length { pool = pool.filter { $0.count == length } }
         if pool.isEmpty { pool = withImages }
-        var pick: String
-        repeat { pick = pool.randomElement() ?? "cat" }
-        while pick == excluding && pool.count > 1
-        return pick
+        // Scheduled, not uniform — see WordProgress. Uniform sampling over
+        // the whole list meant a child essentially never met a word twice.
+        return WordProgress.shared.scheduledWord(from: pool, excluding: excluding)
     }
     /// Returns exactly `n` words (callers size grids/boards for `n`, so this
     /// must never silently return fewer). Prefers distinct words; the length

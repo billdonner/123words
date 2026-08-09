@@ -14,6 +14,7 @@
 		29A39106BAAC5EDE6431FB29 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FEEC0F22FCB5000C23B5D329 /* Assets.xcassets */; };
 		2C080FE7654E6CDB05235841 /* RaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9911929EAFA7512B463B91 /* RaceView.swift */; };
 		31630DF5E60F1FA5776E1B5F /* MathCardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E49FB2C78FFB625E95FBD1CE /* MathCardStore.swift */; };
+		540645F4A3D8ED9ED3E77093 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 111F4BB3C58216F300F5723E /* README.md */; };
 		5833A98C0174B609DB125D7F /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B482FFCC885E4A5F84999C9 /* GalleryView.swift */; };
 		59C1E3426A9F4BB47FF46DAD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAF72EE4D531E1FED641CE0F /* ContentView.swift */; };
 		5ECEC7BBA6377FDE72909945 /* VoicePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F708C936AD759E255370A2D8 /* VoicePickerView.swift */; };
@@ -30,11 +31,14 @@
 		9798A5B737BDF3E506BA0532 /* WordQuizGame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 766A74B48904C25F24A64312 /* WordQuizGame.swift */; };
 		97F225FD66E5C4A3BA9BC92D /* WordStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D65988A9BAC727A470553EE /* WordStore.swift */; };
 		C03A8197220E5D5852998A1E /* SpellItGame.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23C24B2F031BF4732B6AE91 /* SpellItGame.swift */; };
+		FF89399DB2F75EFDBB5F5712 /* cardzerver_export_2026-06-04.json in Resources */ = {isa = PBXBuildFile; fileRef = 02B0B1E125701920820D6E1A /* cardzerver_export_2026-06-04.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		02B0B1E125701920820D6E1A /* cardzerver_export_2026-06-04.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "cardzerver_export_2026-06-04.json"; sourceTree = "<group>"; };
 		06552E310E0B41BE6AAE1A68 /* GameKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameKit.swift; sourceTree = "<group>"; };
 		0A0D4D0A7FD631C6549DAB61 /* AltGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AltGalleryView.swift; sourceTree = "<group>"; };
+		111F4BB3C58216F300F5723E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		131425E3F07047FAA7B450D0 /* RaceSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceSession.swift; sourceTree = "<group>"; };
 		39B2EE5E73D3D88017FF545F /* ParentOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentOnboardingView.swift; sourceTree = "<group>"; };
 		3B482FFCC885E4A5F84999C9 /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
@@ -90,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				9C161BDD36B23C3F0B1BA8B7 /* math_cards.json */,
+				99CEA2BC5FEFC2660059981B /* math_decks */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -100,6 +105,15 @@
 				B7ED34F47705A2F921C64EBF /* Words123.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		99CEA2BC5FEFC2660059981B /* math_decks */ = {
+			isa = PBXGroup;
+			children = (
+				02B0B1E125701920820D6E1A /* cardzerver_export_2026-06-04.json */,
+				111F4BB3C58216F300F5723E /* README.md */,
+			);
+			path = math_decks;
 			sourceTree = "<group>";
 		};
 		F64123CA9C9F1D5272517DD8 /* Sources */ = {
@@ -184,6 +198,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				29A39106BAAC5EDE6431FB29 /* Assets.xcassets in Resources */,
+				540645F4A3D8ED9ED3E77093 /* README.md in Resources */,
+				FF89399DB2F75EFDBB5F5712 /* cardzerver_export_2026-06-04.json in Resources */,
 				8B8592273D6EA00E9A6946D6 /* math_cards.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -228,7 +244,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = NEAY582ME4;
 				INFOPLIST_FILE = Sources/Info.plist;
@@ -309,7 +325,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = NEAY582ME4;
 				INFOPLIST_FILE = Sources/Info.plist;

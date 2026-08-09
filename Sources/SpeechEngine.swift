@@ -252,16 +252,23 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
     private func speakNextLetter() {
         guard currentLetterIndex < spellingLetters.count else {
-            // All letters done — clear highlight then speak the whole word
+            // All letters done — blend them back into the word.
+            //
+            // The sequence used to be whole → letters → whole, which skips
+            // the step where reading actually happens: running the letters
+            // together into the word. Now the tiles sweep left-to-right in
+            // time with the word being spoken, so the child sees the parts
+            // become the whole rather than just hearing the whole again.
             let word = spellingWord
+            let count = spellingLetters.count
             let gen = generation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 guard gen == self.generation else { return }
-                self.highlightedLetterIndex = -1
                 self.isSpelling = false
                 self.isInSpellingMode = false
                 self.activateSession()
-                self.synthesizer.speak(self.utterance(word, rate: 0.48, pitch: 1.1))
+                self.synthesizer.speak(self.utterance(word, rate: 0.42, pitch: 1.1))
+                self.blendSweep(count: count, gen: gen)
             }
             return
         }
@@ -270,6 +277,23 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         currentLetterIndex += 1
         activateSession()
         synthesizer.speak(utterance(letter, rate: spellingSpeed.rate, pitch: 1.2))
+    }
+
+    /// Runs the highlight across every tile in about the time it takes to
+    /// say the word, then clears it.
+    private func blendSweep(count: Int, gen: Int) {
+        guard count > 0 else { return }
+        let step = 0.15
+        for i in 0..<count {
+            DispatchQueue.main.asyncAfter(deadline: .now() + step * Double(i)) {
+                guard gen == self.generation else { return }
+                self.highlightedLetterIndex = i
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + step * Double(count) + 0.1) {
+            guard gen == self.generation else { return }
+            self.highlightedLetterIndex = -1
+        }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
