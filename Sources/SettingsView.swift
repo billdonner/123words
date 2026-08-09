@@ -103,6 +103,20 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Picker("Letters say", selection: $speechEngine.letterVoice) {
+                        ForEach(LetterVoice.allCases) { v in
+                            Text("\(v.label) — \(v.detail)").tag(v)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } header: {
+                    Text("Letters Say")
+                } footer: {
+                    Text("Names is the usual starting point — knowing letter names is one of the strongest predictors of later reading, and most consonant names contain their own sound. Sounds is what's needed to actually decode a word, and it's where names mislead: “double-u” has no w-sound in it, and “a” is named ay but says ă in cat. Words with irregular spellings — the, two, eye — always use names, because sounding them out would teach something untrue.")
+                }
+
+                Section {
                     Toggle("Capital letters", isOn: $isUppercase)
                 } header: {
                     Text("Letters")

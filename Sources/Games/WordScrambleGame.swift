@@ -142,8 +142,8 @@ struct WordScrambleGame: View {
             misses = 0
             hintIndex = nil
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { used.append(idx) }
-            // Queue rather than interrupt — see SpellItGame.
-            speech.speak(String(pressed), interrupting: false)
+            // Queued, and name-or-sound aware — see SpellItGame.
+            speech.speakLetter(pressed, in: word)
             if used.count == word.count {
                 let g = roundGen
                 locked = true

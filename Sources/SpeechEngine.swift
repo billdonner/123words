@@ -1,6 +1,61 @@
 import AVFoundation
 import SwiftUI
 
+/// What a letter says when the app spells a word out.
+///
+/// Names is the default and stays the default: letter-name knowledge is
+/// one of the two strongest predictors of later reading, and for most
+/// English consonants the name embeds the sound (b /biː/, t /tiː/).
+/// Sounds is what decoding actually needs — and is where letter names
+/// mislead, for `w` ("double-u" contains no /w/), `y`, `h`, and every
+/// vowel (`a` is named /eɪ/ but says /æ/ in `cat`).
+enum LetterVoice: String, CaseIterable, Identifiable {
+    case names, sounds, both
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .names:  return "Names"
+        case .sounds: return "Sounds"
+        case .both:   return "Both"
+        }
+    }
+    var detail: String {
+        switch self {
+        case .names:  return #"“see”, “ay”, “tee”"#
+        case .sounds: return #"“k”, “a”, “t”"#
+        case .both:   return "Name, then sound"
+        }
+    }
+}
+
+/// Default sound for each letter, as IPA.
+///
+/// The utterance text is always the plain letter, with the IPA supplied
+/// as an attribute — so on a voice that doesn't support IPA notation the
+/// synthesiser degrades to saying the letter's name rather than failing
+/// silently.
+///
+/// Vowels are the short sounds, which is what they say in the CVC words
+/// this mode is restricted to (`cat`, `pig`, `sun`). Note that stop
+/// consonants can't be produced in isolation without a trailing vowel;
+/// the synthesiser will add a slight one, which is why this mode is a
+/// supplement to the blend step rather than a replacement for it.
+enum Phonics {
+    static let table: [Character: String] = [
+        "a": "æ", "b": "b",  "c": "k",  "d": "d",  "e": "ɛ",
+        "f": "f", "g": "ɡ",  "h": "h",  "i": "ɪ",  "j": "dʒ",
+        "k": "k", "l": "l",  "m": "m",  "n": "n",  "o": "ɑ",
+        "p": "p", "q": "kw", "r": "ɹ",  "s": "s",  "t": "t",
+        "u": "ʌ", "v": "v",  "w": "w",  "x": "ks", "y": "j",
+        "z": "z",
+    ]
+
+    static func sound(for letter: Character) -> String? {
+        table[Character(letter.lowercased())]
+    }
+}
+
 enum SpellingSpeed: String, CaseIterable {
     case slow = "Slow"
     case medium = "Medium"
@@ -48,10 +103,25 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
 
-    private var spellingLetters: [String] = []
+    /// One thing to say during a spell pass. A single letter can produce
+    /// two steps in `.both` mode ("see", then /k/), so the highlight is
+    /// driven by `letterIndex` rather than by the step counter.
+    fileprivate struct SpellStep {
+        let letterIndex: Int
+        let text: String
+        let ipa: String?
+    }
+
+    private var spellingSteps: [SpellStep] = []
+    private var stepIndex: Int = 0
+    private var spellingLetterCount: Int = 0
     private var spellingWord: String = ""
-    private var currentLetterIndex: Int = 0
     private var isInSpellingMode: Bool = false
+
+    @Published var letterVoice: LetterVoice =
+        LetterVoice(rawValue: UserDefaults.standard.string(forKey: "letterVoice") ?? "") ?? .names {
+        didSet { UserDefaults.standard.set(letterVoice.rawValue, forKey: "letterVoice") }
+    }
 
     // Bumped by every stopAll(); delayed callbacks capture the value at
     // schedule time and bail if it no longer matches (word/round changed,
@@ -186,9 +256,26 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         isInSpellingMode = true
         isSpelling = true
         spellingWord = word
-        spellingLetters = word.lowercased().map { String($0) }
-        currentLetterIndex = 0
+        spellingSteps = Self.steps(for: word, voice: letterVoice)
+        spellingLetterCount = word.count
+        stepIndex = 0
         speakNextLetter()
+    }
+
+    /// Build the spell pass for a word.
+    ///
+    /// Heart words are forced back to letter names whatever the setting:
+    /// sounding out `eye` as /ɛ/-/j/-/ɛ/ or `two` as /t/-/w/-/ɑ/ teaches
+    /// an active falsehood. They're learned whole, so the app must never
+    /// model them as decodable.
+    fileprivate static func steps(for word: String, voice: LetterVoice) -> [SpellStep] {
+        let effective = WordStore.decodableWords.contains(word) ? voice : .names
+        return word.lowercased().enumerated().flatMap { i, ch -> [SpellStep] in
+            let name = SpellStep(letterIndex: i, text: String(ch), ipa: nil)
+            guard effective != .names, let ipa = Phonics.sound(for: ch) else { return [name] }
+            let sound = SpellStep(letterIndex: i, text: String(ch), ipa: ipa)
+            return effective == .sounds ? [sound] : [name, sound]
+        }
     }
 
     // Preview a voice — says "Hello, I am [name]". Fully resets engine state
@@ -231,18 +318,45 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         highlightedLetterIndex = -1
         isSpelling = false
         isSpeaking = false
-        spellingLetters = []
-        currentLetterIndex = 0
+        spellingSteps = []
+        stepIndex = 0
         deactivateSessionIfIdle()
     }
 
-    private func utterance(_ text: String, rate: Float, pitch: Float) -> AVSpeechUtterance {
-        let u = AVSpeechUtterance(string: text)
+    private func utterance(_ text: String, rate: Float, pitch: Float,
+                           ipa: String? = nil) -> AVSpeechUtterance {
+        let u: AVSpeechUtterance
+        if let ipa {
+            // Text stays the plain letter so an IPA-unaware voice falls
+            // back to the letter's name instead of going silent.
+            let attributed = NSMutableAttributedString(string: text)
+            attributed.addAttribute(
+                NSAttributedString.Key(rawValue: AVSpeechSynthesisIPANotationAttribute),
+                value: ipa,
+                range: NSRange(location: 0, length: attributed.length)
+            )
+            u = AVSpeechUtterance(attributedString: attributed)
+        } else {
+            u = AVSpeechUtterance(string: text)
+        }
         u.rate = rate
         u.pitchMultiplier = pitch
         u.volume = 1.0
         u.voice = resolvedVoice()
         return u
+    }
+
+    /// Say a single letter the way the current mode says it — used by the
+    /// per-letter tap feedback in the reader and the two spelling games,
+    /// which previously always said the letter's name regardless.
+    func speakLetter(_ letter: Character, in word: String, interrupting: Bool = false) {
+        guard !isMuted else { return }
+        let useSounds = letterVoice != .names && WordStore.decodableWords.contains(word)
+        let ipa = useSounds ? Phonics.sound(for: letter) : nil
+        if interrupting || isInSpellingMode || pendingSpell { stopAll() }
+        isSpeaking = true
+        activateSession()
+        synthesizer.speak(utterance(String(letter), rate: 0.4, pitch: 1.2, ipa: ipa))
     }
 
     private func resolvedVoice() -> AVSpeechSynthesisVoice? {
@@ -251,7 +365,7 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     private func speakNextLetter() {
-        guard currentLetterIndex < spellingLetters.count else {
+        guard stepIndex < spellingSteps.count else {
             // All letters done — blend them back into the word.
             //
             // The sequence used to be whole → letters → whole, which skips
@@ -260,7 +374,7 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             // time with the word being spoken, so the child sees the parts
             // become the whole rather than just hearing the whole again.
             let word = spellingWord
-            let count = spellingLetters.count
+            let count = spellingLetterCount
             let gen = generation
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 guard gen == self.generation else { return }
@@ -272,11 +386,11 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             }
             return
         }
-        highlightedLetterIndex = currentLetterIndex
-        let letter = spellingLetters[currentLetterIndex]
-        currentLetterIndex += 1
+        let step = spellingSteps[stepIndex]
+        highlightedLetterIndex = step.letterIndex
+        stepIndex += 1
         activateSession()
-        synthesizer.speak(utterance(letter, rate: spellingSpeed.rate, pitch: 1.2))
+        synthesizer.speak(utterance(step.text, rate: spellingSpeed.rate, pitch: 1.2, ipa: step.ipa))
     }
 
     /// Runs the highlight across every tile in about the time it takes to

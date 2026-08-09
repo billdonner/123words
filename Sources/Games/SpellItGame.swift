@@ -167,9 +167,10 @@ struct SpellItGame: View {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                 typed.append(idx)
             }
-            // Queue rather than interrupt — fast tapping used to clip
-            // every letter to its first phoneme.
-            speech.speak(String(pressed), interrupting: false)
+            // Queued rather than interrupting — fast tapping used to clip
+            // every letter to its first phoneme. Says the letter's sound
+            // or name depending on the parent's setting.
+            speech.speakLetter(pressed, in: word)
             if typed.count == word.count {
                 streak += 1
                 locked = true

@@ -112,9 +112,10 @@ struct ContentView: View {
                             // never passed in — children tapped giant
                             // letters and nothing happened.
                             onLetterTap: { i in
-                                let letters = Array(wordStore.currentWord)
+                                let word = wordStore.currentWord
+                                let letters = Array(word)
                                 guard i < letters.count else { return }
-                                speechEngine.speak(String(letters[i]), interrupting: false)
+                                speechEngine.speakLetter(letters[i], in: word)
                             }
                         )
 
