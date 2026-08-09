@@ -94,8 +94,15 @@ struct HomeHubView: View {
     @State private var activeGame: HomePage? = nil
     @State private var classicPage: Int = 0
 
-    // Parental settings sheet
+    // Parental settings sheet, behind the grown-up gate
     @State private var showParentalSettings: Bool = false
+    @State private var showParentGate: Bool = false
+    @State private var gatePassed: Bool = false
+
+    // First-run onboarding now lives here rather than inside the reader,
+    // where a parent who went straight to a game never saw it.
+    @AppStorage("hasSeenParentOnboarding") private var hasSeenOnboarding = false
+    @State private var showOnboarding: Bool = false
 
     private let classicPages: [HomePage] = HomePage.allCases
     private var isIPad: Bool { sizeClass == .regular }
@@ -111,6 +118,7 @@ struct HomeHubView: View {
         .onAppear {
             refreshBest()
             consumeScreenshotHooks()
+            if !hasSeenOnboarding { showOnboarding = true }
         }
         .onChange(of: raceDurationRaw) { _, _ in refreshBest() }
         .fullScreenCover(isPresented: $showReader) {
@@ -131,8 +139,16 @@ struct HomeHubView: View {
             case .count:    CountItGame(speech: speech)
             }
         }
+        .sheet(isPresented: $showParentGate, onDismiss: {
+            if gatePassed { gatePassed = false; showParentalSettings = true }
+        }) {
+            ParentGateView(passed: $gatePassed)
+        }
         .sheet(isPresented: $showParentalSettings) {
             HubSettingsView()
+        }
+        .fullScreenCover(isPresented: $showOnboarding) {
+            ParentOnboardingView()
         }
     }
 
@@ -430,9 +446,13 @@ struct HomeHubView: View {
             .foregroundStyle(.white.opacity(0.5))
             // Long-press on the tiny version label opens the parental
             // settings sheet — invisible to kids, easy for parents.
+            // The label itself is ~50x13pt — too small for a parent to
+            // reliably hit — so the tap area is padded out well beyond
+            // the visible text while the text stays camouflaged.
+            .padding(20)
             .contentShape(Rectangle())
-            .onLongPressGesture(minimumDuration: 0.8) {
-                showParentalSettings = true
+            .onLongPressGesture(minimumDuration: 1.5) {
+                showParentGate = true
             }
             .accessibilityHint("Long press for parent settings")
     }

@@ -11,12 +11,12 @@ struct ContentView: View {
     // session configurations and stopAll() on one could not silence the
     // other.
     @ObservedObject var speechEngine: SpeechEngine
-    @AppStorage("hasSeenParentOnboarding") private var hasSeenOnboarding = false
     @AppStorage("showPlayButton")  private var showPlayButton  = false
     @AppStorage("showSpellButton") private var showSpellButton = false
     @State private var showSettings     = false
+    @State private var showParentGate   = false
+    @State private var gatePassed       = false
     @State private var showVoicePicker  = false
-    @State private var showOnboarding   = false
     @State private var showKidGallery   = false
     @Environment(\.dismiss) private var dismissReader
     @State private var colorIndex    = Int.random(in: 0..<bgColors.count)
@@ -95,7 +95,7 @@ struct ContentView: View {
                     VStack(spacing: geo.size.height * 0.012) {
                         if showImage {
                             WordImageView(word: wordStore.currentWord, targetHeight: imgH,
-                                          onLongPress: { showSettings = true })
+                                          onLongPress: { showParentGate = true })
                                 .transition(.scale(scale: 0.5).combined(with: .opacity))
                         } else if awaitingReveal {
                             RevealTeaser(height: imgH) { revealNow() }
@@ -163,9 +163,6 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            if !hasSeenOnboarding {
-                showOnboarding = true
-            }
             // Screenshot-mode hooks — consumed on first read
             if UserDefaults.standard.bool(forKey: "screenshotShowVoicePicker") {
                 UserDefaults.standard.removeObject(forKey: "screenshotShowVoicePicker")
@@ -179,7 +176,6 @@ struct ContentView: View {
                 UserDefaults.standard.removeObject(forKey: "screenshotShowGallery")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { showKidGallery = true }
             }
-            guard !showOnboarding else { return }
             if UserDefaults.standard.string(forKey: "screenshotWord") != nil {
                 showImage = true
                 speechEngine.isPending = true
@@ -214,10 +210,10 @@ struct ContentView: View {
             awaitingReveal = false
             speechEngine.stopAll()
         }
-        .popover(isPresented: $showOnboarding, onDismiss: {
-            beginWord(delay: 0.5)
-        }, isIPad: isIPad) {
-            ParentOnboardingView()
+        .sheet(isPresented: $showParentGate, onDismiss: {
+            if gatePassed { gatePassed = false; showSettings = true }
+        }) {
+            ParentGateView(passed: $gatePassed)
         }
         .popover(isPresented: $showSettings, isIPad: isIPad) {
             SettingsView(wordStore: wordStore, speechEngine: speechEngine)

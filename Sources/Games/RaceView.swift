@@ -88,7 +88,14 @@ struct RaceView: View {
 
     private var raceBar: some View {
         HStack(spacing: 12) {
-            Button { race.end(); dismiss() } label: {
+            // Persist the best before leaving: quitting early used to
+            // throw away a personal best, since only the results
+            // overlay's buttons ever wrote it.
+            Button {
+                if race.score > bestScore { bestScore = race.score }
+                race.end()
+                dismiss()
+            } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 18, weight: .black))
                     .foregroundStyle(.white)

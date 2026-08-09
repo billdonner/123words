@@ -1,6 +1,80 @@
 import AVFoundation
 import SwiftUI
 
+/// Stands between a long press and the settings screens.
+///
+/// The long press alone was never a gate: it sat on the picture — the
+/// largest target on screen — and a child resting a finger while thinking
+/// landed in a form with the voice picker and the word filter in it. The
+/// onboarding even advertised it as the way in. A single addition problem
+/// is the conventional, low-friction way to establish there's an adult
+/// holding the phone.
+struct ParentGateView: View {
+    @Binding var passed: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var a = Int.random(in: 4...9)
+    @State private var b = Int.random(in: 4...9)
+    @State private var wrongPick: Int? = nil
+
+    private var answer: Int { a + b }
+
+    private var choices: [Int] {
+        var set = Set([answer])
+        while set.count < 4 {
+            let n = answer + Int.random(in: -4...4)
+            if n != answer, n > 0 { set.insert(n) }
+        }
+        // Deterministic order per question so the buttons don't reshuffle
+        // on every redraw.
+        return set.sorted()
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Spacer()
+                Text("Grown-ups only")
+                    .font(.title2.bold())
+                Text("What is \(a) + \(b)?")
+                    .font(.system(size: 44, weight: .black, design: .rounded))
+
+                HStack(spacing: 12) {
+                    ForEach(choices, id: \.self) { n in
+                        Button {
+                            if n == answer {
+                                passed = true
+                                dismiss()
+                            } else {
+                                wrongPick = n
+                                a = Int.random(in: 4...9)
+                                b = Int.random(in: 4...9)
+                            }
+                        } label: {
+                            Text("\(n)")
+                                .font(.system(size: 28, weight: .black, design: .rounded))
+                                .frame(minWidth: 64, minHeight: 64)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(wrongPick == n ? Color.red.opacity(0.25)
+                                                             : Color.secondary.opacity(0.15))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Spacer()
+            }
+            .padding()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var wordStore: WordStore
     @ObservedObject var speechEngine: SpeechEngine
