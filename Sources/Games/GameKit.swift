@@ -94,6 +94,58 @@ struct GameLetterTile: View {
     }
 }
 
+/// Haptics. The generators are held for the life of the app and kept
+/// primed: constructing a `UINotificationFeedbackGenerator` at the tap
+/// site (as every game used to) means the first haptic of a session is
+/// late or dropped entirely.
+enum Haptics {
+    private static let notify = UINotificationFeedbackGenerator()
+
+    static func prepare() { notify.prepare() }
+    static func success() { notify.notificationOccurred(.success); notify.prepare() }
+    /// Deliberately `.warning`, not `.error` — a wrong tap by a 4-year-old
+    /// is a normal part of learning, not a fault condition.
+    static func wrong()   { notify.notificationOccurred(.warning); notify.prepare() }
+}
+
+/// Marks a choice tile right or wrong in a way the background can't
+/// swallow. The games pick their background at random from `gameColors`,
+/// so a green "correct" tint landed on a green background about one round
+/// in four at 1.17:1 — feedback the child could not see, on screens that
+/// auto-advance in about a second. A white ring plus a glyph reads on all
+/// eight backgrounds.
+struct AnswerMark: ViewModifier {
+    enum State { case none, right, wrong }
+    let state: State
+    var corner: CGFloat = 22
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: corner)
+                    .strokeBorder(.white, lineWidth: state == .none ? 0 : 7)
+            )
+            .overlay(alignment: .topTrailing) {
+                if state != .none {
+                    Image(systemName: state == .right ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .font(.system(size: 34, weight: .black))
+                        .foregroundStyle(.white, state == .right
+                                         ? Color(red: 0.05, green: 0.45, blue: 0.15)
+                                         : Color(red: 0.6, green: 0.05, blue: 0.05))
+                        .padding(8)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: state)
+    }
+}
+
+extension View {
+    func answerMark(_ state: AnswerMark.State, corner: CGFloat = 22) -> some View {
+        modifier(AnswerMark(state: state, corner: corner))
+    }
+}
+
 // A close (X) button styled like TopBarButton
 struct GameCloseButton: View {
     let action: () -> Void

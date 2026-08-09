@@ -25,6 +25,8 @@ struct WordQuizGame: View {
     @State private var wrongIndex: Int? = nil
     @State private var rightIndex: Int? = nil
     @State private var locked = false
+    @State private var misses = 0
+    @State private var hintIndex: Int? = nil
     @State private var colorIndex = randomGameColor()
     @State private var showCheer = false
     // Bumped on every new round / dismiss; delayed callbacks bail if stale.
@@ -44,7 +46,7 @@ struct WordQuizGame: View {
 
                 Text("Tap the picture you hear")
                     .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
 
                 Button {
                     speech.speak(answer)
@@ -52,8 +54,17 @@ struct WordQuizGame: View {
                     VStack(spacing: 8) {
                         Image(systemName: "speaker.wave.3.fill")
                             .font(.system(size: isIPad ? 56 : 44, weight: .black))
-                        Text(answer.uppercased())
-                            .font(.system(size: isIPad ? 38 : 28, weight: .black, design: .rounded))
+                        // The answer used to be printed here in 28pt
+                        // under the words "Tap the picture you hear",
+                        // which hands the answer to any child who can
+                        // read and is noise to one who can't. It now
+                        // appears only once they've chosen correctly, as
+                        // the sound-to-print pairing payoff.
+                        Text(rightIndex == nil ? "Tap to hear again" : answer.uppercased())
+                            .font(.system(size: rightIndex == nil
+                                          ? (isIPad ? 20 : 16)
+                                          : (isIPad ? 38 : 28),
+                                          weight: .black, design: .rounded))
                     }
                     .foregroundStyle(.white)
                     .padding(.vertical, 18)
@@ -100,7 +111,7 @@ struct WordQuizGame: View {
             Spacer()
             Text("Listen & Pick")
                 .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.white)
             Spacer()
             Color.clear.frame(width: 44, height: 44)
         }
@@ -109,21 +120,27 @@ struct WordQuizGame: View {
     }
 
     private func choiceTile(word: String, idx: Int) -> some View {
-        let isWrong = wrongIndex == idx
-        let isRight = rightIndex == idx
-        return ZStack {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(isWrong ? Color.red.opacity(0.6)
-                      : isRight ? Color.green.opacity(0.55)
-                                : Color.white.opacity(0.22))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22)
-                        .strokeBorder(.white.opacity(0.45), lineWidth: 3)
-                )
-            GameWordImage(word: word, size: isIPad ? 140 : 100)
+        let mark: AnswerMark.State =
+            wrongIndex == idx ? .wrong : (rightIndex == idx ? .right : .none)
+        return Button { pick(idx) } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(hintIndex == idx ? Color.white.opacity(0.5)
+                                           : Color.white.opacity(0.22))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22)
+                            .strokeBorder(.white.opacity(0.45), lineWidth: 3)
+                    )
+                GameWordImage(word: word, size: isIPad ? 140 : 100)
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .answerMark(mark)
         }
-        .aspectRatio(1, contentMode: .fit)
-        .onTapGesture { pick(idx) }
+        .buttonStyle(KidTileButtonStyle())
+        // These tiles were pure image with no label at all, so VoiceOver
+        // announced nothing for any of the four answers — the game was
+        // unusable rather than merely awkward.
+        .accessibilityLabel(word)
     }
 
     private func pick(_ idx: Int) {
@@ -132,14 +149,15 @@ struct WordQuizGame: View {
         if choices[idx] == answer {
             locked = true
             rightIndex = idx
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            hintIndex = nil
+            Haptics.success()
             if inRace {
-                // Verbal "Correct!" + race bump, then snap to the
-                // next round. 0.85s is enough for the word to land
-                // before the next prompt's stopAll cuts it off.
+                // "Correct!" + race bump, then advance. Was 0.85s, which
+                // is under the beat a child needs to register what they
+                // just got right.
                 speech.speak("Correct!")
                 onCorrect()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     guard g == roundGen else { return }
                     newRound(initial: false)
                 }
@@ -152,22 +170,19 @@ struct WordQuizGame: View {
                 }
             }
         } else {
+            // No skip, no apology — see SpellItGame.tap. After a second
+            // miss the correct picture is highlighted and the prompt
+            // repeats, but the child still makes the choice.
             wrongIndex = idx
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
-            if inRace {
-                // One shot per question — verbalize the right answer
-                // so the kid learns from the miss, then advance.
-                locked = true
-                speech.speak("Sorry. The correct answer is \(answer).")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
-                    guard g == roundGen else { return }
-                    newRound(initial: false)
-                }
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    guard g == roundGen else { return }
-                    wrongIndex = nil
-                }
+            Haptics.wrong()
+            misses += 1
+            if misses >= 2 {
+                hintIndex = choices.firstIndex(of: answer)
+                speech.speak(answer)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                guard g == roundGen else { return }
+                wrongIndex = nil
             }
         }
     }
@@ -181,6 +196,9 @@ struct WordQuizGame: View {
         wrongIndex = nil
         rightIndex = nil
         locked = false
+        misses = 0
+        hintIndex = nil
+        Haptics.prepare()
         colorIndex = randomGameColor(excluding: colorIndex)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             guard g == roundGen, shouldSpeakPrompt() else { return }

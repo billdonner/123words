@@ -25,6 +25,10 @@ struct WordScrambleGame: View {
     // (and during the post-completion advance window). Prevents the kid
     // from mashing tiles until they hit the right one.
     @State private var locked = false
+    // See SpellItGame — wrong taps on the current letter, and the tile to
+    // light up once the child has missed twice.
+    @State private var misses = 0
+    @State private var hintIndex: Int? = nil
 
     private var isIPad: Bool { sizeClass == .regular }
     private var bg: Color { gameColors[colorIndex % gameColors.count] }
@@ -44,7 +48,7 @@ struct WordScrambleGame: View {
 
                 Text("Unscramble!")
                     .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
                     .padding(.top, 10)
 
                 Spacer(minLength: 12)
@@ -63,6 +67,7 @@ struct WordScrambleGame: View {
                         GameLetterTile(
                             letter: letter.uppercased(),
                             size: isIPad ? 90 : 70,
+                            highlighted: hintIndex == idx,
                             dimmed: used.contains(idx),
                             wrong: wrongIndex == idx,
                             onTap: { tap(idx) }
@@ -91,7 +96,7 @@ struct WordScrambleGame: View {
             Spacer()
             Text("Word Scramble")
                 .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.white)
             Spacer()
             Button { speech.speak(word) } label: {
                 Image(systemName: "speaker.wave.2.fill")
@@ -134,13 +139,16 @@ struct WordScrambleGame: View {
         let needed = Array(word.lowercased())[used.count]
         let pressed = Character(scrambled[idx])
         if pressed == needed {
+            misses = 0
+            hintIndex = nil
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { used.append(idx) }
             // Queue rather than interrupt — see SpellItGame.
             speech.speak(String(pressed), interrupting: false)
             if used.count == word.count {
                 let g = roundGen
+                locked = true
+                Haptics.success()
                 if inRace {
-                    locked = true
                     onCorrect()
                     // Let the final letter finish, say "Correct!",
                     // then advance.
@@ -148,7 +156,7 @@ struct WordScrambleGame: View {
                         guard g == roundGen else { return }
                         speech.speak("Correct!")
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
                         guard g == roundGen else { return }
                         startRound(initial: false)
                     }
@@ -166,22 +174,20 @@ struct WordScrambleGame: View {
                 }
             }
         } else {
+            // No skip, no apology — see the note in SpellItGame.tap.
             wrongIndex = idx
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            Haptics.wrong()
+            misses += 1
             let g = roundGen
-            if inRace {
-                // One shot per word — verbalize the right answer.
-                locked = true
-                speech.speak("Sorry. The correct answer is \(word).")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
-                    guard g == roundGen else { return }
-                    startRound(initial: false)
+            if misses >= 2 {
+                hintIndex = scrambled.indices.first {
+                    Character(scrambled[$0]) == needed && !used.contains($0)
                 }
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    guard g == roundGen else { return }
-                    wrongIndex = nil
-                }
+                speech.speak(String(needed))
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                guard g == roundGen else { return }
+                wrongIndex = nil
             }
         }
     }
@@ -191,6 +197,9 @@ struct WordScrambleGame: View {
         let g = roundGen
         locked = false
         wrongIndex = nil
+        misses = 0
+        hintIndex = nil
+        Haptics.prepare()
         let new = GameWordPool.random(excluding: initial ? nil : word)
         word = new
         used = []

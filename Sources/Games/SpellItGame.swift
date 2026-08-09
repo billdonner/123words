@@ -29,6 +29,10 @@ struct SpellItGame: View {
     // (and during the post-completion advance window). Prevents further
     // taps so the kid can't mash letters until they hit the right one.
     @State private var locked = false
+    // Wrong taps on the current letter, and the tile to light up once the
+    // child has missed twice (prompt fade — see `tap`).
+    @State private var misses = 0
+    @State private var hintIndex: Int? = nil
 
     private var isIPad: Bool { sizeClass == .regular }
     private var bg: Color { gameColors[colorIndex % gameColors.count] }
@@ -49,7 +53,7 @@ struct SpellItGame: View {
 
                 Text("Spell the word")
                     .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
                     .padding(.top, 10)
 
                 Spacer(minLength: 8)
@@ -82,6 +86,7 @@ struct SpellItGame: View {
                         GameLetterTile(
                             letter: letter.uppercased(),
                             size: tile,
+                            highlighted: hintIndex == idx,
                             dimmed: typed.contains(idx),
                             wrong: wrongIndex == idx,
                             onTap: { tap(idx) }
@@ -112,7 +117,7 @@ struct SpellItGame: View {
             Spacer()
             Text("Spell It")
                 .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.white)
             Spacer()
             Button {
                 speech.speak(word)
@@ -157,6 +162,8 @@ struct SpellItGame: View {
         let nextNeeded = Array(word.lowercased())[typed.count]
         let pressed = Character(keyboard[idx])
         if pressed == nextNeeded {
+            misses = 0
+            hintIndex = nil
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                 typed.append(idx)
             }
@@ -165,9 +172,10 @@ struct SpellItGame: View {
             speech.speak(String(pressed), interrupting: false)
             if typed.count == word.count {
                 streak += 1
+                locked = true
+                Haptics.success()
                 let g = roundGen
                 if inRace {
-                    locked = true
                     onCorrect()
                     // Let the final letter speech finish (~0.4s), then
                     // say "Correct!", then advance. stopAll inside the
@@ -176,7 +184,7 @@ struct SpellItGame: View {
                         guard g == roundGen else { return }
                         speech.speak("Correct!")
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
                         guard g == roundGen else { return }
                         startRound(initial: false)
                     }
@@ -194,23 +202,29 @@ struct SpellItGame: View {
                 }
             }
         } else {
+            // A wrong letter used to end the word outright in Race mode:
+            // lock out, say "Sorry. The correct answer is cat", and swap
+            // in a new word 1.9s later. The child never produced the
+            // right answer, so the trial was terminated on the error —
+            // the opposite of model → lead → test, where the trial is
+            // completed by the learner's own correct response.
+            //
+            // Now: the tile shakes, nothing is taken away, and on a
+            // second miss the correct tile lights up and says its name.
+            // The child still has to tap it themselves.
             wrongIndex = idx
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            Haptics.wrong()
+            misses += 1
             let g = roundGen
-            if inRace {
-                // One shot per word — wrong letter skips the word and
-                // verbalizes the right answer so the kid learns it.
-                locked = true
-                speech.speak("Sorry. The correct answer is \(word).")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
-                    guard g == roundGen else { return }
-                    startRound(initial: false)
+            if misses >= 2 {
+                hintIndex = keyboard.indices.first {
+                    Character(keyboard[$0]) == nextNeeded && !typed.contains($0)
                 }
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    guard g == roundGen else { return }
-                    wrongIndex = nil
-                }
+                speech.speak(String(nextNeeded))
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                guard g == roundGen else { return }
+                wrongIndex = nil
             }
         }
     }
@@ -220,6 +234,9 @@ struct SpellItGame: View {
         let g = roundGen
         locked = false
         wrongIndex = nil
+        misses = 0
+        hintIndex = nil
+        Haptics.prepare()
         let new = GameWordPool.random(excluding: initial ? nil : word)
         word = new
         typed = []

@@ -203,7 +203,7 @@ struct RaceView: View {
 
                 Text("Stars")
                     .font(.system(size: 14, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
                 HStack(spacing: 8) {
                     ForEach(0..<3, id: \.self) { i in
                         Text(i < stars ? "⭐️" : "☆")
@@ -219,7 +219,7 @@ struct RaceView: View {
                 } else if bestScore > 0 {
                     Text("Best: \(bestScore)")
                         .font(.system(size: 16, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white)
                 }
 
                 if !race.perGame.isEmpty {
@@ -272,7 +272,7 @@ struct RaceView: View {
                     Text("\(n)")
                         .font(.system(size: 15, weight: .black, design: .rounded))
                 }
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(.white)
             }
         }
         .padding(.horizontal, 18)

@@ -22,6 +22,8 @@ struct CountItGame: View {
     @State private var rightIndex: Int? = nil
     @State private var wrongIndex: Int? = nil
     @State private var locked = false
+    @State private var misses = 0
+    @State private var hintIndex: Int? = nil
     @State private var colorIndex = randomGameColor()
     @State private var showResult = false
     // Bumped on every new round / dismiss; delayed callbacks bail if stale.
@@ -166,7 +168,7 @@ struct CountItGame: View {
             Spacer()
             Text("Count It")
                 .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.white)
             Spacer()
             Button {
                 if let c = card { speech.speak(MathCardStore.spokenPrompt(from: c)) }
@@ -220,23 +222,26 @@ struct CountItGame: View {
     }
 
     private func choiceTile(n: Int, idx: Int) -> some View {
-        let isWrong = wrongIndex == idx
-        let isRight = rightIndex == idx
-        return ZStack {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(isWrong ? Color.red.opacity(0.6)
-                      : isRight ? Color.green.opacity(0.55)
-                                : Color.white.opacity(0.22))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22)
-                        .strokeBorder(.white.opacity(0.45), lineWidth: 3)
-                )
-            Text("\(n)")
-                .font(.system(size: isIPad ? 88 : 64, weight: .black, design: .rounded))
-                .foregroundStyle(.white)
+        let mark: AnswerMark.State =
+            wrongIndex == idx ? .wrong : (rightIndex == idx ? .right : .none)
+        return Button { pick(n: n, idx: idx) } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(hintIndex == idx ? Color.white.opacity(0.5)
+                                           : Color.white.opacity(0.22))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22)
+                            .strokeBorder(.white.opacity(0.45), lineWidth: 3)
+                    )
+                Text("\(n)")
+                    .font(.system(size: isIPad ? 88 : 64, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+            .frame(height: isIPad ? 160 : 110)
+            .answerMark(mark)
         }
-        .frame(height: isIPad ? 160 : 110)
-        .onTapGesture { pick(n: n, idx: idx) }
+        .buttonStyle(KidTileButtonStyle())
+        .accessibilityLabel("\(n)")
     }
 
     private func pick(n: Int, idx: Int) {
@@ -244,15 +249,15 @@ struct CountItGame: View {
         if n == answer {
             locked = true
             rightIndex = idx
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            hintIndex = nil
+            Haptics.success()
             if inRace {
-                // Verbal feedback ("Correct!") + race score bump,
-                // then snap to the next card. 0.85s is enough for the
-                // word to finish before the next prompt cuts it off.
+                // "Correct!" + race score bump, then the next card. Was
+                // 0.85s — too quick for the answer to land.
                 speech.speak("Correct!")
                 onCorrect()
                 let g = roundGen
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     guard g == roundGen else { return }
                     newRound()
                 }
@@ -266,26 +271,20 @@ struct CountItGame: View {
                 }
             }
         } else {
+            // No skip, no apology — see SpellItGame.tap. After a second
+            // miss the right number is highlighted and spoken, but the
+            // child still taps it.
             wrongIndex = idx
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            Haptics.wrong()
+            misses += 1
             let g = roundGen
-            if inRace {
-                // One shot per question. The kid hears the right
-                // answer so they learn from the miss — AVSpeech reads
-                // bare numerals as words ("12" → "twelve"). Extra
-                // delay lets the apology finish before the next
-                // prompt cuts in.
-                locked = true
-                speech.speak("Sorry. The correct answer is \(answer).")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
-                    guard g == roundGen else { return }
-                    newRound()
-                }
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    guard g == roundGen else { return }
-                    wrongIndex = nil
-                }
+            if misses >= 2 {
+                hintIndex = choices.firstIndex(of: answer)
+                speech.speak("\(answer)")
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                guard g == roundGen else { return }
+                wrongIndex = nil
             }
         }
     }
@@ -303,6 +302,9 @@ struct CountItGame: View {
         rightIndex = nil
         wrongIndex = nil
         locked = false
+        misses = 0
+        hintIndex = nil
+        Haptics.prepare()
         colorIndex = randomGameColor(excluding: colorIndex)
 
         // 4 distinct choices near the answer

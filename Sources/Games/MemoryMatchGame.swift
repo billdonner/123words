@@ -113,7 +113,7 @@ struct MemoryMatchGame: View {
             Spacer()
             Text("Memory Match")
                 .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.white)
             Spacer()
             Button { newRound() } label: {
                 Image(systemName: "arrow.clockwise")
@@ -144,7 +144,7 @@ struct MemoryMatchGame: View {
                     )
                 Text("?")
                     .font(.system(size: size * 0.46, weight: .black, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
             }
             .opacity(revealed ? 0 : 1)
 
@@ -169,6 +169,11 @@ struct MemoryMatchGame: View {
             }
             .opacity(revealed ? 1 : 0)
             .scaleEffect(revealed ? 1 : 0.85)
+            // SwiftUI keeps opacity-0 views in the accessibility tree, so
+            // VoiceOver read out the word on every face-down card —
+            // the game both leaked its answers and was trivially
+            // cheatable.
+            .accessibilityHidden(!revealed)
         }
         .frame(width: size, height: size)
         .opacity(card.matched ? 0.55 : 1.0)
