@@ -1,16 +1,25 @@
 import SwiftUI
 import UIKit
 
-// Shared palette — matches ContentView.bgColors
+// The one palette for the whole app — backgrounds for the reader and
+// every game. Each colour is tuned to a relative luminance of ≤0.27 so
+// that solid white text clears the WCAG 3:1 bar for large text (every
+// kid-facing string here is ≥18pt and bold). The old palette ran as
+// bright as L=0.56 (yellow), which put white at 1.71:1 — illegible.
+//
+// Corollary, and the reason the numbers stay honest: white at 0.9 alpha
+// is already only ~3.0:1 on these, and 0.8 fails outright. Kid-facing
+// text must be solid white. Use `.opacity()` on white for decoration
+// (borders, fills) — never for words a child has to read.
 let gameColors: [Color] = [
-    Color(red: 1.0, green: 0.35, blue: 0.35),
-    Color(red: 1.0, green: 0.60, blue: 0.10),
-    Color(red: 0.30, green: 0.75, blue: 0.35),
-    Color(red: 0.25, green: 0.55, blue: 1.00),
-    Color(red: 0.70, green: 0.30, blue: 0.90),
-    Color(red: 1.00, green: 0.30, blue: 0.60),
-    Color(red: 0.10, green: 0.70, blue: 0.85),
-    Color(red: 0.95, green: 0.75, blue: 0.10),
+    Color(red: 0.949, green: 0.332, blue: 0.332),   // red
+    Color(red: 0.788, green: 0.473, blue: 0.079),   // orange
+    Color(red: 0.248, green: 0.620, blue: 0.289),   // green
+    Color(red: 0.250, green: 0.550, blue: 1.000),   // blue
+    Color(red: 0.700, green: 0.300, blue: 0.900),   // purple
+    Color(red: 0.955, green: 0.287, blue: 0.573),   // pink
+    Color(red: 0.085, green: 0.595, blue: 0.722),   // cyan
+    Color(red: 0.670, green: 0.529, blue: 0.071),   // yellow
 ]
 
 func randomGameColor(excluding: Int? = nil) -> Int {
@@ -18,6 +27,20 @@ func randomGameColor(excluding: Int? = nil) -> Int {
     repeat { idx = Int.random(in: 0..<gameColors.count) }
     while idx == excluding && gameColors.count > 1
     return idx
+}
+
+/// Scales a tap target down on press. Children get no audio for up to
+/// half a second after a tap (and none at all while a round is locked),
+/// so without this a tap that landed and a tap that missed look
+/// identical. Doubles as the `isButton` trait for VoiceOver, which bare
+/// `.onTapGesture` never provided.
+struct KidTileButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.93 : 1.0)
+            .animation(.spring(response: 0.18, dampingFraction: 0.6),
+                       value: configuration.isPressed)
+    }
 }
 
 // A 123words-style letter tile — white-on-color rounded square
@@ -30,26 +53,44 @@ struct GameLetterTile: View {
     var onTap: (() -> Void)? = nil
 
     var body: some View {
+        Button { onTap?() } label: { face }
+            .buttonStyle(KidTileButtonStyle())
+            .disabled(onTap == nil)
+            .accessibilityLabel(letter)
+            .accessibilityValue(dimmed ? "used" : "")
+    }
+
+    private var face: some View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.18)
                 .fill(highlighted ? Color.yellow
                       : (wrong ? Color.red.opacity(0.85)
-                                : Color.white.opacity(dimmed ? 0.08 : 0.25)))
+                                : (dimmed ? Color.black.opacity(0.28)
+                                          : Color.white.opacity(0.25))))
                 .overlay(
                     RoundedRectangle(cornerRadius: size * 0.18)
-                        .strokeBorder(.white.opacity(dimmed ? 0.15 : 0.45), lineWidth: 3)
+                        .strokeBorder(.white.opacity(dimmed ? 0.3 : 0.45), lineWidth: 3)
                 )
-            Text(letter)
-                .font(.system(size: size * 0.55, weight: .black, design: .rounded))
-                .foregroundStyle(highlighted ? .black : (dimmed ? .white.opacity(0.25) : .white))
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+            // A used tile used to be white-at-0.25 on white-at-0.08 —
+            // 1.09:1, i.e. invisible. Knowing which letters are spent is
+            // the whole mechanic in Scramble, so a used tile now goes
+            // dark and takes a check mark rather than just fading.
+            if dimmed {
+                Image(systemName: "checkmark")
+                    .font(.system(size: size * 0.4, weight: .black))
+                    .foregroundStyle(.white.opacity(0.65))
+            } else {
+                Text(letter)
+                    .font(.system(size: size * 0.55, weight: .black, design: .rounded))
+                    .foregroundStyle(highlighted ? .black : .white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
         }
         .frame(width: size, height: size)
         .scaleEffect(highlighted ? 1.1 : 1.0)
         .animation(.spring(response: 0.25, dampingFraction: 0.55), value: highlighted)
         .animation(.spring(response: 0.25, dampingFraction: 0.55), value: wrong)
-        .onTapGesture { onTap?() }
     }
 }
 

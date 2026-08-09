@@ -1,20 +1,16 @@
 import SwiftUI
 
-// Background color palette — bright and child-friendly
-private let bgColors: [Color] = [
-    Color(red: 1.0, green: 0.35, blue: 0.35),
-    Color(red: 1.0, green: 0.60, blue: 0.10),
-    Color(red: 0.30, green: 0.75, blue: 0.35),
-    Color(red: 0.25, green: 0.55, blue: 1.00),
-    Color(red: 0.70, green: 0.30, blue: 0.90),
-    Color(red: 1.00, green: 0.30, blue: 0.60),
-    Color(red: 0.10, green: 0.70, blue: 0.85),
-    Color(red: 0.95, green: 0.75, blue: 0.10),
-]
+// The reader draws from the same palette as the games — see
+// `gameColors` in GameKit.swift for the contrast rationale.
+private let bgColors = gameColors
 
 struct ContentView: View {
     @StateObject private var wordStore   = WordStore()
-    @StateObject private var speechEngine = SpeechEngine()
+    // Shared with the hub and every game. The reader used to build its
+    // own, so two AVSpeechSynthesizers existed with two competing audio
+    // session configurations and stopAll() on one could not silence the
+    // other.
+    @ObservedObject var speechEngine: SpeechEngine
     @AppStorage("hasSeenParentOnboarding") private var hasSeenOnboarding = false
     @AppStorage("showPlayButton")  private var showPlayButton  = false
     @AppStorage("showSpellButton") private var showSpellButton = false
@@ -26,8 +22,14 @@ struct ContentView: View {
     @State private var colorIndex    = Int.random(in: 0..<bgColors.count)
     @State private var wordScale     : CGFloat = 1.0
     @State private var wordOpacity   : Double  = 1.0
-    @State private var isUppercase   = true
+    // Was a top-bar "ABC/abc" button — a text control in an app for
+    // children who cannot read text. It's a grown-up setting, so it
+    // moved to Settings and now persists.
+    @AppStorage("isUppercase") private var isUppercase = true
     @State private var showImage     = false
+    // True during the deliberate beat between the word appearing and the
+    // picture confirming it.
+    @State private var awaitingReveal = false
     // Bumped on every word change / disappear; delayed reveal+speech
     // callbacks bail if the token no longer matches.
     @State private var revealGen     = 0
@@ -53,35 +55,33 @@ struct ContentView: View {
                 VStack(spacing: 0) {
 
                     // ── Top bar: ABC | title | Voices ──
-                    HStack(spacing: 0) {
-                        TopBarButton(label: "←",
-                                     width: isIPad ? 60 : 44, fontSize: isIPad ? 26 : 20,
+                    // Three icon buttons, 60pt tall, 12pt apart. Was four
+                    // 36pt-tall pills 6pt apart labelled "ABC", "PIC" and
+                    // "VOX" — below the 44pt minimum, far below what a
+                    // 4-year-old's finger needs, and captioned in a code
+                    // the target user cannot read.
+                    HStack(spacing: 12) {
+                        TopBarButton(systemImage: "chevron.backward",
+                                     isIPad: isIPad,
                                      accessibilityLabel: "Back to home") {
                             dismissReader()
                         }
-                        .padding(.trailing, 6)
-                        TopBarButton(label: isUppercase ? "ABC" : "abc",
-                                     width: isIPad ? 90 : 60, fontSize: isIPad ? 22 : 15,
-                                     accessibilityLabel: isUppercase ? "Switch to lowercase letters" : "Switch to uppercase letters") {
-                            isUppercase.toggle()
-                        }
-                        TopBarButton(label: "PIC",
-                                     width: isIPad ? 72 : 48, fontSize: isIPad ? 22 : 15,
+                        TopBarButton(systemImage: "photo.on.rectangle.angled",
+                                     isIPad: isIPad,
                                      accessibilityLabel: "Picture gallery") {
                             showKidGallery = true
                         }
-                        .padding(.leading, 6)
 
                         Spacer()
 
                         Text("123 Words")
                             .font(.system(size: isIPad ? 28 : 18, weight: .black, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.88))
+                            .foregroundStyle(.white)
 
                         Spacer()
 
-                        TopBarButton(label: "VOX",
-                                     width: isIPad ? 72 : 48, fontSize: isIPad ? 22 : 15,
+                        TopBarButton(systemImage: "person.wave.2.fill",
+                                     isIPad: isIPad,
                                      accessibilityLabel: "Voice picker") {
                             showVoicePicker = true
                         }
@@ -97,6 +97,8 @@ struct ContentView: View {
                             WordImageView(word: wordStore.currentWord, targetHeight: imgH,
                                           onLongPress: { showSettings = true })
                                 .transition(.scale(scale: 0.5).combined(with: .opacity))
+                        } else if awaitingReveal {
+                            RevealTeaser(height: imgH) { revealNow() }
                         } else {
                             Color.clear.frame(height: imgH)
                         }
@@ -105,13 +107,18 @@ struct ContentView: View {
                             word: wordStore.currentWord,
                             highlightedIndex: speechEngine.highlightedLetterIndex,
                             tileHeight: tileH,
-                            isUppercase: isUppercase
+                            isUppercase: isUppercase,
+                            // The handler was fully written and simply
+                            // never passed in — children tapped giant
+                            // letters and nothing happened.
+                            onLetterTap: { i in
+                                let letters = Array(wordStore.currentWord)
+                                guard i < letters.count else { return }
+                                speechEngine.speak(String(letters[i]), interrupting: false)
+                            }
                         )
 
-                        Text("swipe for a new word")
-                            .font(.system(size: max(14, geo.size.width * 0.038),
-                                          weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.6))
+                        SwipeHintView(fontSize: max(26, geo.size.width * 0.07))
                     }
                     .scaleEffect(wordScale)
                     .opacity(wordOpacity)
@@ -172,60 +179,43 @@ struct ContentView: View {
                 UserDefaults.standard.removeObject(forKey: "screenshotShowGallery")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { showKidGallery = true }
             }
-            let gen = revealGen
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                guard gen == revealGen else { return }
-                guard !showOnboarding else { return }
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    showImage = true
-                }
-                if UserDefaults.standard.string(forKey: "screenshotWord") != nil {
-                    speechEngine.isPending = true
-                    speechEngine.spell(wordStore.currentWord)
-                } else {
-                    speechEngine.speakThenSpell(wordStore.currentWord)
-                }
+            guard !showOnboarding else { return }
+            if UserDefaults.standard.string(forKey: "screenshotWord") != nil {
+                showImage = true
+                speechEngine.isPending = true
+                speechEngine.spell(wordStore.currentWord)
+            } else {
+                beginWord(delay: Self.revealDelay)
             }
         }
         .gesture(
             DragGesture(minimumDistance: 40)
                 .onEnded { value in
-                    guard !speechEngine.isActive else { return }
-                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                    if value.translation.width < 0 { wordStore.nextWord() }
-                    else { wordStore.previousWord() }
+                    // Preschool swipes run diagonally, so requiring
+                    // |dx| > |dy| threw away a lot of genuine intent.
+                    let dx = value.translation.width, dy = value.translation.height
+                    guard abs(dx) > abs(dy) * 0.7 else { return }
+                    // No isActive guard. A swipe used to be silently
+                    // dropped for the whole ~6s speak-and-spell cycle,
+                    // which taught the child their input does nothing.
+                    // A swipe now always means "next word" and simply
+                    // interrupts whatever is playing.
+                    speechEngine.stopAll()
+                    if dx < 0 { wordStore.nextWord() } else { wordStore.previousWord() }
                     advanceColor()
-                    showImage = false
                     animateWordChange()
-                    speechEngine.isPending = true
-                    revealGen &+= 1
-                    let gen = revealGen
-                    let word = wordStore.currentWord
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        guard gen == revealGen else { return }
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                            showImage = true
-                        }
-                        speechEngine.isPending = false
-                        speechEngine.speakThenSpell(word)
-                    }
+                    beginWord(delay: Self.revealDelay)
                 }
         )
         .onDisappear {
             // Leaving the reader: silence speech and invalidate any
             // pending reveal so it can't speak/animate after dismissal.
             revealGen &+= 1
+            awaitingReveal = false
             speechEngine.stopAll()
         }
         .popover(isPresented: $showOnboarding, onDismiss: {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                showImage = true
-            }
-            let gen = revealGen
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                guard gen == revealGen else { return }
-                speechEngine.speakThenSpell(wordStore.currentWord)
-            }
+            beginWord(delay: 0.5)
         }, isIPad: isIPad) {
             ParentOnboardingView()
         }
@@ -236,8 +226,42 @@ struct ContentView: View {
             VoicePickerView(speechEngine: speechEngine)
         }
         .popover(isPresented: $showKidGallery, isIPad: isIPad) {
-            KidGalleryView()
+            KidGalleryView(speech: speechEngine)
         }
+    }
+
+    // MARK: - Word reveal
+
+    /// How long the word sits alone before the picture confirms it. Was
+    /// 2.0s, which is past the point where a preschooler stops reading the
+    /// delay as a consequence of their own swipe.
+    private static let revealDelay: Double = 1.2
+
+    /// Show the new word, hold the beat, then reveal + speak.
+    private func beginWord(delay: Double) {
+        revealGen &+= 1
+        let gen = revealGen
+        let word = wordStore.currentWord
+        showImage = false
+        awaitingReveal = true
+        speechEngine.isPending = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            guard gen == revealGen else { return }
+            revealNow(word)
+        }
+    }
+
+    /// Reveal immediately — from the timer, or because the child tapped
+    /// the teaser card rather than waiting.
+    private func revealNow(_ word: String? = nil) {
+        guard awaitingReveal else { return }
+        revealGen &+= 1
+        awaitingReveal = false
+        speechEngine.isPending = false
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            showImage = true
+        }
+        speechEngine.speakThenSpell(word ?? wordStore.currentWord)
     }
 
     // MARK: - Helpers
@@ -261,24 +285,88 @@ struct ContentView: View {
 // MARK: - Top Bar Button
 
 struct TopBarButton: View {
-    let label: String
-    var width: CGFloat = 52
-    var fontSize: CGFloat = 15
+    let systemImage: String
+    var isIPad: Bool = false
     var accessibilityLabel: String? = nil
     let action: () -> Void
 
+    private var side: CGFloat { isIPad ? 76 : 60 }
+
     var body: some View {
         Button(action: action) {
-            Text(label)
-                .font(.system(size: fontSize, weight: .black, design: .rounded))
+            Image(systemName: systemImage)
+                .font(.system(size: isIPad ? 30 : 24, weight: .black))
                 .foregroundStyle(.white)
-                .frame(width: width, height: fontSize * 2.4)
+                .frame(width: side, height: side)
                 .background(.white.opacity(0.22))
                 .clipShape(Capsule())
                 .overlay(Capsule().strokeBorder(.white.opacity(0.45), lineWidth: 1.5))
         }
+        .buttonStyle(KidTileButtonStyle())
+        .accessibilityLabel(accessibilityLabel ?? systemImage)
+    }
+}
+
+/// Replaces the written instruction "swipe for a new word", which was set
+/// in 14pt white at 0.6 alpha — 1.37:1 on the old yellow background, and
+/// addressed to children who cannot read.
+struct SwipeHintView: View {
+    var fontSize: CGFloat = 34
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var slide = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "chevron.left").opacity(0.45)
+            Image(systemName: "chevron.left").opacity(0.7)
+            Image(systemName: "hand.point.up.left.fill")
+            Image(systemName: "chevron.left").opacity(0)
+        }
+        .font(.system(size: fontSize, weight: .black))
+        .foregroundStyle(.white)
+        .offset(x: slide ? -14 : 14)
+        .animation(reduceMotion ? nil
+                   : .easeInOut(duration: 1.1).repeatForever(autoreverses: true),
+                   value: slide)
+        .onAppear { slide = true }
+        .accessibilityLabel("Swipe sideways for a new word")
+    }
+}
+
+/// The gap between the word appearing and the picture confirming it is
+/// deliberate — it gives the child a beat to attempt the word before the
+/// answer arrives. It just used to be 2.0s of blank screen with input
+/// silently dropped, which reads as a broken app. Now it is visible,
+/// shorter, and tappable to skip.
+struct RevealTeaser: View {
+    let height: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulse = false
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                RoundedRectangle(cornerRadius: height * 0.12)
+                    .fill(.white.opacity(0.16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: height * 0.12)
+                            .strokeBorder(.white.opacity(0.45), lineWidth: 3)
+                    )
+                Text("?")
+                    .font(.system(size: height * 0.42, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+            .frame(height: height)
+            .padding(.horizontal, 40)
+            .scaleEffect(pulse ? 1.0 : 0.94)
+            .animation(reduceMotion ? nil
+                       : .easeInOut(duration: 0.75).repeatForever(autoreverses: true),
+                       value: pulse)
+        }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel ?? label)
+        .onAppear { pulse = true }
+        .accessibilityLabel("Show the picture")
     }
 }
 
@@ -469,46 +557,37 @@ enum ImageProvenance: Equatable {
     }
 }
 
-// MARK: - Image gesture UIKit bridge (2-finger tap + long press)
+// MARK: - Image gesture UIKit bridge (parent long press)
+//
+// This used to also carry a 2-finger tap that flipped the picture over to
+// an image-provenance card ("DALL·E 3 by OpenAI"). It was exactly
+// backwards for the audience: a child palming the screen fired it
+// constantly and lost the picture they were looking at, while no
+// 4-year-old would ever perform a deliberate two-finger tap. Provenance
+// now lives only in the parent-facing GalleryView.
 private struct ImageGestureView: UIViewRepresentable {
-    let onTwoFingerTap: () -> Void
     let onLongPress: () -> Void
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onTwoFingerTap: onTwoFingerTap, onLongPress: onLongPress)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(onLongPress: onLongPress) }
 
     func makeUIView(context: Context) -> UIView {
         let v = UIView()
         v.backgroundColor = .clear
-
-        let tap = UITapGestureRecognizer(target: context.coordinator,
-                                         action: #selector(Coordinator.twoFingerTapped))
-        tap.numberOfTouchesRequired = 2
-        v.addGestureRecognizer(tap)
-
         let lp = UILongPressGestureRecognizer(target: context.coordinator,
                                               action: #selector(Coordinator.longPressed(_:)))
-        lp.minimumPressDuration = 0.8
+        lp.minimumPressDuration = 1.5
         lp.numberOfTouchesRequired = 1
         v.addGestureRecognizer(lp)
-
         return v
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        context.coordinator.onTwoFingerTap = onTwoFingerTap
-        context.coordinator.onLongPress   = onLongPress
+        context.coordinator.onLongPress = onLongPress
     }
 
     class Coordinator: NSObject {
-        var onTwoFingerTap: () -> Void
         var onLongPress: () -> Void
-        init(onTwoFingerTap: @escaping () -> Void, onLongPress: @escaping () -> Void) {
-            self.onTwoFingerTap = onTwoFingerTap
-            self.onLongPress    = onLongPress
-        }
-        @objc func twoFingerTapped() { onTwoFingerTap() }
+        init(onLongPress: @escaping () -> Void) { self.onLongPress = onLongPress }
         @objc func longPressed(_ gr: UILongPressGestureRecognizer) {
             if gr.state == .began { onLongPress() }
         }
@@ -522,8 +601,8 @@ struct WordImageView: View {
     var targetHeight: CGFloat = 240
     var onLongPress: (() -> Void)? = nil
 
-    @State private var showProvenance = false
     @State private var floatOffset: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var provenance: ImageProvenance {
         if wordDefinitiveSymbol[word] != nil     { return .sfSymbol(definitive: true) }
@@ -537,48 +616,25 @@ struct WordImageView: View {
     private var isAI: Bool { provenance == .aiGenerated }
 
     var body: some View {
-        ZStack {
-            // ── Front face ──
-            frontImage
-                .rotation3DEffect(.degrees(showProvenance ? 90 : 0), axis: (x: 0, y: 1, z: 0))
-                .opacity(showProvenance ? 0 : 1)
+        frontImage
+            .frame(height: targetHeight)
+            .frame(maxWidth: .infinity)
+            .offset(y: floatOffset)
+            .overlay(ImageGestureView(onLongPress: { onLongPress?() }))
+            .onAppear { startFloat(delay: Double.random(in: 0...1.5)) }
+            .onChange(of: word) {
+                floatOffset = 0
+                startFloat(delay: 0.15)
+            }
+    }
 
-            // ── Back face (provenance card) ──
-            provenanceCard
-                .rotation3DEffect(.degrees(showProvenance ? 0 : -90), axis: (x: 0, y: 1, z: 0))
-                .opacity(showProvenance ? 1 : 0)
-        }
-        .frame(height: targetHeight)
-        .frame(maxWidth: .infinity)
-        .offset(y: floatOffset)
-        .overlay(ImageGestureView(
-            onTwoFingerTap: {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
-                    showProvenance.toggle()
-                }
-            },
-            onLongPress: { onLongPress?() }
-        ))
-        .onAppear {
-            if isAI {
-                withAnimation(
-                    .easeInOut(duration: 2.8)
-                    .repeatForever(autoreverses: true)
-                    .delay(Double.random(in: 0...1.5))
-                ) { floatOffset = -7 }
-            }
-        }
-        .onChange(of: word) {
-            floatOffset = 0
-            showProvenance = false
-            if isAI {
-                withAnimation(
-                    .easeInOut(duration: 2.8)
-                    .repeatForever(autoreverses: true)
-                    .delay(0.15)
-                ) { floatOffset = -7 }
-            }
-        }
+    // The float is a `repeatForever` animation that never idles, so it
+    // also held a display link alive for the whole life of the screen.
+    private func startFloat(delay: Double) {
+        guard isAI, !reduceMotion else { return }
+        withAnimation(
+            .easeInOut(duration: 2.8).repeatForever(autoreverses: true).delay(delay)
+        ) { floatOffset = -7 }
     }
 
     @ViewBuilder private var frontImage: some View {
@@ -622,27 +678,6 @@ struct WordImageView: View {
         }
     }
 
-    @ViewBuilder private var provenanceCard: some View {
-        let prov = provenance
-        ZStack {
-            RoundedRectangle(cornerRadius: targetHeight * 0.1)
-                .fill(.black.opacity(0.55))
-                .padding(8)
-            VStack(spacing: 10) {
-                Text(prov.icon)
-                    .font(.system(size: targetHeight * 0.22))
-                Text(prov.label)
-                    .font(.system(size: targetHeight * 0.1, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                Text(prov.detail)
-                    .font(.system(size: targetHeight * 0.075, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.75))
-                    .multilineTextAlignment(.center)
-            }
-            .padding(20)
-        }
-        .id(word + "_prov")
-    }
 }
 
 // MARK: - iPad-aware presentation
@@ -662,5 +697,5 @@ extension View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(speechEngine: SpeechEngine())
 }

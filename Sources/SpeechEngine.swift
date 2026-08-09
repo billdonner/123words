@@ -36,6 +36,18 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
     @Published var selectedVoiceIdentifier: String = UserDefaults.standard.string(forKey: "selectedVoiceID") ?? ""
 
+    /// Parent-facing kill switch. The session category is `.playback`, so
+    /// the hardware ring/silent switch does NOT silence this app — that is
+    /// deliberate (a talking app that goes mute when the phone is on
+    /// silent reads as broken), but it means parents need an in-app mute
+    /// and there wasn't one.
+    @Published var isMuted: Bool = UserDefaults.standard.bool(forKey: "speechMuted") {
+        didSet {
+            UserDefaults.standard.set(isMuted, forKey: "speechMuted")
+            if isMuted { stopAll() }
+        }
+    }
+
     private var spellingLetters: [String] = []
     private var spellingWord: String = ""
     private var currentLetterIndex: Int = 0
@@ -65,36 +77,111 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     override init() {
         super.init()
         synthesizer.delegate = self
+        configureSession()
+        observeSessionEvents()
+    }
+
+    deinit { NotificationCenter.default.removeObserver(self) }
+
+    // MARK: - Audio session
+
+    private func configureSession() {
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playback,
                 mode: .spokenAudio,
                 options: .duckOthers
             )
-            try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("AVAudioSession setup failed: \(error)")
         }
     }
+
+    /// The session is activated around utterances rather than once at
+    /// launch. `.duckOthers` used to be applied for the whole foreground
+    /// lifetime of the app, so a parent's podcast stayed ducked through
+    /// every silent gap — including the multi-second ones between words.
+    private func activateSession() {
+        try? AVAudioSession.sharedInstance().setActive(true)
+    }
+
+    private func deactivateSessionIfIdle() {
+        guard !synthesizer.isSpeaking, !isInSpellingMode, !pendingSpell else { return }
+        try? AVAudioSession.sharedInstance().setActive(
+            false, options: .notifyOthersOnDeactivation
+        )
+    }
+
+    private func observeSessionEvents() {
+        let nc = NotificationCenter.default
+        // Without this the app permanently loses its voice: a phone call,
+        // Siri, or an alarm deactivates the session and nothing ever
+        // reactivates it, so speech silently stops for the rest of the
+        // session and only a force-quit brings it back.
+        nc.addObserver(self,
+                       selector: #selector(handleInterruption(_:)),
+                       name: AVAudioSession.interruptionNotification,
+                       object: AVAudioSession.sharedInstance())
+        // Yanking headphones out mid-word would otherwise blast the
+        // built-in speaker at volume 1.0.
+        nc.addObserver(self,
+                       selector: #selector(handleRouteChange(_:)),
+                       name: AVAudioSession.routeChangeNotification,
+                       object: AVAudioSession.sharedInstance())
+    }
+
+    @objc private func handleInterruption(_ note: Notification) {
+        guard let info = note.userInfo,
+              let raw = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+        switch type {
+        case .began:
+            stopAll()
+        case .ended:
+            configureSession()
+        @unknown default:
+            break
+        }
+    }
+
+    @objc private func handleRouteChange(_ note: Notification) {
+        guard let info = note.userInfo,
+              let raw = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: raw) else { return }
+        if reason == .oldDeviceUnavailable { stopAll() }
+    }
+
+    // MARK: - Speaking
 
     func selectVoice(_ identifier: String) {
         selectedVoiceIdentifier = identifier
         UserDefaults.standard.set(identifier, forKey: "selectedVoiceID")
     }
 
-    func speak(_ word: String) {
-        stopAll()
+    /// Speak `text`.
+    ///
+    /// `interrupting: true` (the default) cuts whatever is playing — right
+    /// for a new word or a new round. `interrupting: false` lets the
+    /// utterance fall in behind what's already playing, which is what
+    /// per-letter tap feedback needs: every call used to begin with
+    /// `stopAll()`, so a child tapping C-A-T at any speed heard
+    /// "k…", "æ…", "tee" — the letter sounds the app exists to teach were
+    /// exactly what fast tapping destroyed.
+    func speak(_ word: String, interrupting: Bool = true) {
+        guard !isMuted else { return }
+        // A queued utterance can't be spliced into the middle of a
+        // spelling chain without corrupting it, so those still interrupt.
+        if interrupting || isInSpellingMode || pendingSpell {
+            stopAll()
+        }
         isSpeaking = true
         isInSpellingMode = false
-        let utterance = AVSpeechUtterance(string: word)
-        utterance.rate = 0.48
-        utterance.pitchMultiplier = 1.1
-        utterance.volume = 1.0
-        utterance.voice = resolvedVoice()
-        synthesizer.speak(utterance)
+        activateSession()
+        synthesizer.speak(utterance(word, rate: 0.48, pitch: 1.1))
     }
 
     func spell(_ word: String) {
+        guard !isMuted else { return }
         stopAll()
         isInSpellingMode = true
         isSpelling = true
@@ -116,25 +203,23 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         } else {
             text = "Hello!"
         }
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.48
-        utterance.pitchMultiplier = 1.15
-        utterance.volume = 1.0
-        utterance.voice = voice
-        synthesizer.speak(utterance)
+        let u = AVSpeechUtterance(string: text)
+        u.rate = 0.48
+        u.pitchMultiplier = 1.15
+        u.volume = 1.0
+        u.voice = voice
+        activateSession()
+        synthesizer.speak(u)
     }
 
     func speakThenSpell(_ word: String) {
+        guard !isMuted else { return }
         stopAll()
         spellingWord = word
         pendingSpell = true
         isSpeaking = true
-        let utterance = AVSpeechUtterance(string: word)
-        utterance.rate = 0.48
-        utterance.pitchMultiplier = 1.1
-        utterance.volume = 1.0
-        utterance.voice = resolvedVoice()
-        synthesizer.speak(utterance)
+        activateSession()
+        synthesizer.speak(utterance(word, rate: 0.48, pitch: 1.1))
     }
 
     func stopAll() {
@@ -148,6 +233,16 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         isSpeaking = false
         spellingLetters = []
         currentLetterIndex = 0
+        deactivateSessionIfIdle()
+    }
+
+    private func utterance(_ text: String, rate: Float, pitch: Float) -> AVSpeechUtterance {
+        let u = AVSpeechUtterance(string: text)
+        u.rate = rate
+        u.pitchMultiplier = pitch
+        u.volume = 1.0
+        u.voice = resolvedVoice()
+        return u
     }
 
     private func resolvedVoice() -> AVSpeechSynthesisVoice? {
@@ -165,25 +260,16 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 self.highlightedLetterIndex = -1
                 self.isSpelling = false
                 self.isInSpellingMode = false
-                let utterance = AVSpeechUtterance(string: word)
-                utterance.rate = 0.48
-                utterance.pitchMultiplier = 1.1
-                utterance.volume = 1.0
-                utterance.voice = self.resolvedVoice()
-                self.synthesizer.speak(utterance)
+                self.activateSession()
+                self.synthesizer.speak(self.utterance(word, rate: 0.48, pitch: 1.1))
             }
             return
         }
         highlightedLetterIndex = currentLetterIndex
         let letter = spellingLetters[currentLetterIndex]
         currentLetterIndex += 1
-
-        let utterance = AVSpeechUtterance(string: letter)
-        utterance.rate = spellingSpeed.rate
-        utterance.pitchMultiplier = 1.2
-        utterance.volume = 1.0
-        utterance.voice = resolvedVoice()
-        synthesizer.speak(utterance)
+        activateSession()
+        synthesizer.speak(utterance(letter, rate: spellingSpeed.rate, pitch: 1.2))
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
@@ -199,7 +285,10 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 self.isSpeaking = false
                 self.spell(self.spellingWord)
             } else {
-                self.isSpeaking = false
+                // Queued utterances (letter-tap feedback) mean "one
+                // finished" is not "all finished" — ask the synthesizer.
+                self.isSpeaking = self.synthesizer.isSpeaking
+                self.deactivateSessionIfIdle()
             }
         }
     }

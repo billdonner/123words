@@ -1,17 +1,10 @@
 import SwiftUI
 
-private let kidGalleryColors: [Color] = [
-    Color(red: 1.0, green: 0.35, blue: 0.35),
-    Color(red: 1.0, green: 0.60, blue: 0.10),
-    Color(red: 0.30, green: 0.75, blue: 0.35),
-    Color(red: 0.25, green: 0.55, blue: 1.00),
-    Color(red: 0.70, green: 0.30, blue: 0.90),
-    Color(red: 1.00, green: 0.30, blue: 0.60),
-    Color(red: 0.10, green: 0.70, blue: 0.85),
-    Color(red: 0.95, green: 0.75, blue: 0.10),
-]
+// Third copy of the palette, now folded into the one in GameKit.swift.
+private let kidGalleryColors = gameColors
 
 struct KidGalleryView: View {
+    @ObservedObject var speech: SpeechEngine
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -31,7 +24,9 @@ struct KidGalleryView: View {
                 LazyVGrid(columns: columns, spacing: isIPad ? 20 : 12) {
                     ForEach(Array(Self.words.enumerated()), id: \.element) { idx, word in
                         KidGalleryCell(word: word, color: kidGalleryColors[idx % kidGalleryColors.count],
-                                       cellHeight: isIPad ? 180 : 110, fontSize: isIPad ? 22 : 15)
+                                       cellHeight: isIPad ? 180 : 110, fontSize: isIPad ? 22 : 15) {
+                            speech.speak(word, interrupting: false)
+                        }
                     }
                 }
                 .padding(isIPad ? 24 : 14)
@@ -53,21 +48,29 @@ private struct KidGalleryCell: View {
     let color: Color
     var cellHeight: CGFloat = 110
     var fontSize: CGFloat = 15
+    // A wall of ~200 pictures that did nothing when tapped. Children tap
+    // every one of them, so each now says its word.
+    let onTap: () -> Void
 
     var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(color.opacity(0.85))
-                KidGalleryImage(word: word)
-                    .padding(cellHeight * 0.09)
-            }
-            .frame(height: cellHeight)
+        Button(action: onTap) {
+            VStack(spacing: 6) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(color.opacity(0.85))
+                    KidGalleryImage(word: word)
+                        .padding(cellHeight * 0.09)
+                }
+                .frame(height: cellHeight)
 
-            Text(word.uppercased())
-                .font(.system(size: fontSize, weight: .black, design: .rounded))
-                .foregroundStyle(.primary)
+                Text(word.uppercased())
+                    .font(.system(size: fontSize, weight: .black, design: .rounded))
+                    .foregroundStyle(.primary)
+            }
         }
+        .buttonStyle(KidTileButtonStyle())
+        .accessibilityLabel(word)
+        .accessibilityHint("Say this word")
     }
 }
 

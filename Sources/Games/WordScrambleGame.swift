@@ -135,7 +135,8 @@ struct WordScrambleGame: View {
         let pressed = Character(scrambled[idx])
         if pressed == needed {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { used.append(idx) }
-            speech.speak(String(pressed))
+            // Queue rather than interrupt — see SpellItGame.
+            speech.speak(String(pressed), interrupting: false)
             if used.count == word.count {
                 let g = roundGen
                 if inRace {

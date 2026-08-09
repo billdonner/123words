@@ -34,6 +34,7 @@ struct SpellItGame: View {
     private var bg: Color { gameColors[colorIndex % gameColors.count] }
 
     var body: some View {
+        GeometryReader { geo in
         ZStack {
             bg.ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.4), value: colorIndex)
@@ -63,25 +64,36 @@ struct SpellItGame: View {
 
                 Spacer(minLength: 12)
 
-                // Keyboard of letters (word letters + distractors)
+                // Keyboard of letters (word letters + distractors).
+                // The tile size has to come from the real column width:
+                // a hard 60pt tile overflowed a 48.2pt column on 375pt
+                // devices, so tiles overlapped by ~1.8pt each side and
+                // the later tile in the ForEach won the hit test — a tap
+                // on one letter's visible edge registered as its
+                // neighbour's, which in Race mode ended the word.
+                let hPad: CGFloat = 18
+                let gap: CGFloat = 10
                 let cols = min(keyboard.count, isIPad ? 7 : 6)
-                let kbCols = Array(repeating: GridItem(.flexible(), spacing: 10), count: cols)
-                LazyVGrid(columns: kbCols, spacing: 10) {
+                let avail = geo.size.width - hPad * 2 - gap * CGFloat(cols - 1)
+                let tile = min(isIPad ? 80 : 60, floor(avail / CGFloat(cols)))
+                let kbCols = Array(repeating: GridItem(.fixed(tile), spacing: gap), count: cols)
+                LazyVGrid(columns: kbCols, spacing: gap) {
                     ForEach(Array(keyboard.enumerated()), id: \.offset) { idx, letter in
                         GameLetterTile(
                             letter: letter.uppercased(),
-                            size: isIPad ? 80 : 60,
+                            size: tile,
                             dimmed: typed.contains(idx),
                             wrong: wrongIndex == idx,
                             onTap: { tap(idx) }
                         )
                     }
                 }
-                .padding(.horizontal, 18)
+                .padding(.horizontal, hPad)
                 .padding(.bottom, 30)
             }
 
             if showCheer { GameCheer(message: "Yay!\nYou spelled \(word.uppercased())!") }
+        }
         }
         .onAppear { startRound(initial: true) }
         .onDisappear {
@@ -148,7 +160,9 @@ struct SpellItGame: View {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                 typed.append(idx)
             }
-            speech.speak(String(pressed))
+            // Queue rather than interrupt — fast tapping used to clip
+            // every letter to its first phoneme.
+            speech.speak(String(pressed), interrupting: false)
             if typed.count == word.count {
                 streak += 1
                 let g = roundGen

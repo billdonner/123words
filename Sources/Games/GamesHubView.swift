@@ -114,7 +114,7 @@ struct HomeHubView: View {
         }
         .onChange(of: raceDurationRaw) { _, _ in refreshBest() }
         .fullScreenCover(isPresented: $showReader) {
-            ContentView()
+            ContentView(speechEngine: speech)
         }
         .fullScreenCover(isPresented: $showRace, onDismiss: refreshBest) {
             RaceView(speech: speech, duration: raceDurationLaunched)
@@ -123,7 +123,7 @@ struct HomeHubView: View {
             // Freeform single-game launch — used by the classic hub's
             // Play buttons and the screenshot tooling pipeline.
             switch p {
-            case .read:     ContentView()
+            case .read:     ContentView(speechEngine: speech)
             case .spell:    SpellItGame(speech: speech)
             case .scramble: WordScrambleGame(speech: speech)
             case .memory:   MemoryMatchGame(speech: speech)

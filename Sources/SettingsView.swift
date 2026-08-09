@@ -5,6 +5,7 @@ struct SettingsView: View {
     @ObservedObject var wordStore: WordStore
     @ObservedObject var speechEngine: SpeechEngine
     @Environment(\.dismiss) var dismiss
+    @AppStorage("isUppercase")     private var isUppercase     = true
     @AppStorage("showPlayButton")  private var showPlayButton  = false
     @AppStorage("showSpellButton") private var showSpellButton = false
     @AppStorage("mathAllowAdd")    private var mathAllowAdd    = true
@@ -20,8 +21,19 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    Toggle("Mute all speech", isOn: $speechEngine.isMuted)
                 } header: {
-                    Text("Spelling Speed")
+                    Text("Speech")
+                } footer: {
+                    Text("The app speaks even when the phone's ring/silent switch is set to silent, so this is the way to quiet it.")
+                }
+
+                Section {
+                    Toggle("Capital letters", isOn: $isUppercase)
+                } header: {
+                    Text("Letters")
+                } footer: {
+                    Text("Capitals are easier for beginners to tell apart — no b/d/p/q confusion. Turn this off once your reader is comfortable with lowercase.")
                 }
 
                 Section {

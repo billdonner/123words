@@ -183,7 +183,8 @@ struct MemoryMatchGame: View {
         guard !cards[idx].matched, !cards[idx].flipped else { return }
         cards[idx].flipped = true
 
-        if cards[idx].face == .word { speech.speak(cards[idx].word) }
+        // Queued so rapid flipping doesn't reduce every word to a syllable.
+        if cards[idx].face == .word { speech.speak(cards[idx].word, interrupting: false) }
 
         if let first = firstFlipped {
             locked = true
