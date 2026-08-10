@@ -122,6 +122,10 @@ struct HomeHubView: View {
     @State private var showOnboarding: Bool = false
     @State private var showStickers: Bool = false
 
+    // Hub layout metrics, derived from the real size — see updateHubMetrics.
+    @State private var hubScale: CGFloat = 1
+    @State private var hubLandscape: Bool = false
+
     private let classicPages: [HomePage] = HomePage.allCases
     private var isIPad: Bool { sizeClass == .regular }
     private var raceDuration: TimeInterval { raceDurationRaw }
@@ -176,40 +180,109 @@ struct HomeHubView: View {
     // MARK: - Race hub (default)
 
     private var raceHubBody: some View {
-        ZStack {
-            // Soft brand gradient — distinct from any single game's tint
-            LinearGradient(
-                colors: [
-                    Color(red: 0.18, green: 0.32, blue: 0.78),
-                    Color(red: 0.46, green: 0.18, blue: 0.78),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                // Soft brand gradient — distinct from any single game's tint
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.18, green: 0.32, blue: 0.78),
+                        Color(red: 0.46, green: 0.18, blue: 0.78),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                titleBar
-                Spacer(minLength: 6)
-                practiceCard
-                Spacer(minLength: 12)
-                raceCard
-                Spacer(minLength: 12)
-                HStack {
-                    parentButton
-                    Spacer()
-                    versionTag
+                VStack(spacing: 0) {
+                    titleBar
+                    Spacer(minLength: 6)
+
+                    if useTwoColumns {
+                        // Landscape on iPad: the stacked layout left the
+                        // Practice card as a ~1300pt bar with its content
+                        // clustered at the far left and most of the width
+                        // empty. Side by side fills the screen and keeps
+                        // both choices equally prominent.
+                        HStack(alignment: .top, spacing: 24) {
+                            practiceCardTall
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            raceCard(fill: true)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    } else {
+                        practiceCard
+                        Spacer(minLength: 12)
+                        raceCard
+                    }
+
+                    Spacer(minLength: 12)
+                    HStack {
+                        parentButton
+                        Spacer()
+                        versionTag
+                    }
                 }
+                .padding(.horizontal, isIPad ? 32 : 18)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, isIPad ? 32 : 18)
-            .padding(.vertical, 12)
+            .onAppear { updateHubMetrics(geo.size) }
+            .onChange(of: geo.size) { _, new in updateHubMetrics(new) }
         }
+    }
+
+    /// Two columns only on a genuinely wide screen — iPhone stays stacked
+    /// (and is portrait-locked anyway).
+    private var useTwoColumns: Bool { isIPad && hubLandscape }
+
+    private func updateHubMetrics(_ size: CGSize) {
+        hubLandscape = size.width > size.height
+        // Scale off the *smaller* dimension so rotating the iPad doesn't
+        // change how big everything is.
+        hubScale = kidScale(min(size.width, size.height))
+    }
+
+    /// Artwork can take the full multiplier; text cannot — 28pt of title
+    /// at 2.6x is 73pt, which is shouting. Text takes half the increase.
+    private var hubText: CGFloat { 1 + (hubScale - 1) * 0.5 }
+
+    /// The landscape variant of the Practice card: icon and words stacked
+    /// and centred, so it fills a column instead of stranding its content
+    /// against the left edge of a very wide bar.
+    private var practiceCardTall: some View {
+        Button { showReader = true } label: {
+            VStack(spacing: 18) {
+                Spacer(minLength: 0)
+                GameWordImage(word: HomePage.read.iconWord, size: 110 * hubScale)
+                    .frame(width: 110 * hubScale, height: 110 * hubScale)
+                Text("Practice")
+                    .font(.system(size: 22 * hubText, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("Swipe through words.\nHear them spelled out.")
+                    .font(.system(size: 14 * hubText, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, 24)
+            .padding(.horizontal, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 26)
+                    .fill(.white.opacity(0.14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 26)
+                            .strokeBorder(.white.opacity(0.35), lineWidth: 2)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Practice — open the reader")
     }
 
     private var titleBar: some View {
         HStack {
             Text("123 Words")
-                .font(.system(size: isIPad ? 36 : 28, weight: .black, design: .rounded))
+                .font(.system(size: 28 * hubText, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
             Spacer()
             stickerButton
@@ -222,9 +295,9 @@ struct HomeHubView: View {
     private var stickerButton: some View {
         Button { showStickers = true } label: {
             HStack(spacing: 6) {
-                Text("⭐️").font(.system(size: isIPad ? 26 : 22))
+                Text("⭐️").font(.system(size: 22 * hubText))
                 Text("\(WordProgress.shared.masteredCount)")
-                    .font(.system(size: isIPad ? 22 : 18, weight: .black, design: .rounded))
+                    .font(.system(size: 18 * hubText, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
             }
             .padding(.vertical, 10)
@@ -244,10 +317,10 @@ struct HomeHubView: View {
                     .frame(width: isIPad ? 170 : 80, height: isIPad ? 170 : 80)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Practice")
-                        .font(.system(size: isIPad ? 28 : 22, weight: .black, design: .rounded))
+                        .font(.system(size: 22 * hubText, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                     Text("Swipe through words.\nHear them spelled out.")
-                        .font(.system(size: isIPad ? 17 : 14, weight: .medium, design: .rounded))
+                        .font(.system(size: 14 * hubText, weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.85))
                         .multilineTextAlignment(.leading)
                 }
@@ -271,13 +344,19 @@ struct HomeHubView: View {
         .accessibilityLabel("Practice — open the reader")
     }
 
-    private var raceCard: some View {
+    private var raceCard: some View { raceCard(fill: false) }
+
+    /// `fill` stretches the card to the full column height, so the two
+    /// landscape columns end level instead of Race stopping two-thirds up
+    /// and leaving a large empty band beneath it.
+    private func raceCard(fill: Bool) -> some View {
         VStack(spacing: 14) {
+            if fill { Spacer(minLength: 0) }
             HStack(spacing: 12) {
                 Text("🏁")
-                    .font(.system(size: isIPad ? 44 : 34))
+                    .font(.system(size: 34 * hubText))
                 Text("Race!")
-                    .font(.system(size: isIPad ? 34 : 26, weight: .black, design: .rounded))
+                    .font(.system(size: 26 * hubText, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                 Spacer()
                 if displayedBest > 0 {
@@ -294,7 +373,9 @@ struct HomeHubView: View {
             durationPicker
             previewRow
             startButton
+            if fill { Spacer(minLength: 0) }
         }
+        .frame(maxWidth: fill ? .infinity : nil, maxHeight: fill ? .infinity : nil)
         .padding(.vertical, 20)
         .padding(.horizontal, 18)
         .background(
@@ -327,7 +408,7 @@ struct HomeHubView: View {
                     raceDurationRaw = d
                 } label: {
                     Text(d <= 60 ? "1 MIN" : "2 MIN")
-                        .font(.system(size: 16, weight: .black, design: .rounded))
+                        .font(.system(size: 16 * hubText, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                         .padding(.vertical, 10)
                         .padding(.horizontal, 22)
@@ -350,10 +431,10 @@ struct HomeHubView: View {
         HStack(spacing: 10) {
             ForEach(HomePage.allCases.filter { $0 != .read }, id: \.id) { g in
                 VStack(spacing: 4) {
-                    GameWordImage(word: g.iconWord, size: isIPad ? 96 : 40)
-                        .frame(width: isIPad ? 96 : 40, height: isIPad ? 96 : 40)
+                    GameWordImage(word: g.iconWord, size: 40 * hubScale)
+                        .frame(width: 40 * hubScale, height: 40 * hubScale)
                     Text(g.letters)
-                        .font(.system(size: isIPad ? 16 : 10, weight: .black, design: .rounded))
+                        .font(.system(size: 10 * hubText, weight: .black, design: .rounded))
                         .foregroundStyle(.white.opacity(0.8))
                 }
                 .frame(maxWidth: .infinity)
@@ -371,7 +452,7 @@ struct HomeHubView: View {
                 Image(systemName: "play.fill")
                     .font(.system(size: 24, weight: .black))
                 Text("Start Race")
-                    .font(.system(size: 26, weight: .black, design: .rounded))
+                    .font(.system(size: 26 * hubText, weight: .black, design: .rounded))
             }
             .foregroundStyle(Color(red: 0.46, green: 0.18, blue: 0.78))
             .padding(.vertical, 18)
