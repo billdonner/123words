@@ -85,8 +85,10 @@ final class RaceSession: ObservableObject {
     /// No-op outside of `.running` so end-of-race taps don't leak score.
     func registerCorrect(for game: HomePage) {
         guard phase == .running else { return }
-        score += 1
-        perGame[game, default: 0] += 1
+        // Weighted by effort — see HomePage.racePoints.
+        let points = game.racePoints
+        score += points
+        perGame[game, default: 0] += points
         scoreToken &+= 1
     }
 

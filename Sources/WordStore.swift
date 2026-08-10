@@ -41,8 +41,20 @@ final class WordProgress {
     private var seen: [String: Int]
 
     private init() {
-        boxes = UserDefaults.standard.dictionary(forKey: Self.boxKey) as? [String: Int] ?? [:]
-        seen  = UserDefaults.standard.dictionary(forKey: Self.seenKey) as? [String: Int] ?? [:]
+        boxes = Self.readCounts(Self.boxKey)
+        seen  = Self.readCounts(Self.seenKey)
+    }
+
+    /// Reads a `[String: Int]` out of UserDefaults value-by-value.
+    ///
+    /// A whole-dictionary `as? [String: Int]` cast is all-or-nothing: one
+    /// value of an unexpected type (or a dictionary written by an older
+    /// build, or by the `defaults` tool) discards every entry and silently
+    /// resets the child's progress to zero. Per-value decoding keeps
+    /// whatever is readable.
+    private static func readCounts(_ key: String) -> [String: Int] {
+        guard let raw = UserDefaults.standard.dictionary(forKey: key) else { return [:] }
+        return raw.compactMapValues { ($0 as? NSNumber)?.intValue }
     }
 
     private func persist() {

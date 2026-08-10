@@ -25,6 +25,9 @@ struct RaceView: View {
 
     // Best score for this duration, persisted across launches.
     @AppStorage private var bestScore: Int
+    // The previous run's score, so stars can be judged against this
+    // child's own recent form rather than a fixed bar.
+    @AppStorage private var lastScore: Int
 
     init(speech: SpeechEngine, duration: TimeInterval) {
         self.speech = speech
@@ -34,6 +37,7 @@ struct RaceView: View {
         // Personal best is keyed by duration so 60s and 120s have
         // separate hi-scores.
         self._bestScore = AppStorage(wrappedValue: 0, "raceBest_\(Int(duration))")
+        self._lastScore = AppStorage(wrappedValue: 0, "raceLast_\(Int(duration))")
     }
 
     var body: some View {
@@ -236,13 +240,13 @@ struct RaceView: View {
 
                 HStack(spacing: 14) {
                     overlayButton(label: "Play again", filled: true) {
-                        if isPB { bestScore = race.score }
+                        persistScores()
                         race.reset()
                         resetToken &+= 1
                         race.start(duration: duration)
                     }
                     overlayButton(label: "Done", filled: false) {
-                        if isPB { bestScore = race.score }
+                        persistScores()
                         dismiss()
                     }
                 }
@@ -339,10 +343,27 @@ struct RaceView: View {
         d.removeObject(forKey: "screenshotRaceFinished")
     }
 
+    /// Called when a race runs to the end. `lastScore` is deliberately
+    /// not written when the child quits early — a partial score would
+    /// lower the bar the next run is judged against.
+    private func persistScores() {
+        if race.score > bestScore { bestScore = race.score }
+        lastScore = race.score
+    }
+
+    /// Stars are relative to this child's own history, not to fixed
+    /// thresholds. The old cut-offs were absolute (10/20/30), so a
+    /// 4-year-old who scored 6 was shown three empty stars and told, in
+    /// effect, that they had failed. A goal a child cannot reach is worse
+    /// than no goal. Now: turning up scores, beating your last run scores
+    /// more, and a personal best scores full marks.
     private func starCount(for score: Int) -> Int {
-        if score >= 30 { return 3 }
-        if score >= 20 { return 2 }
-        if score >= 10 { return 1 }
-        return 0
+        guard score > 0 else { return 0 }
+        if bestScore > 0 && score > bestScore { return 3 }
+        if lastScore > 0 && score >= lastScore { return 2 }
+        // First ever run with anything on the board is worth two — there
+        // is nothing to compare against yet.
+        if lastScore == 0 && bestScore == 0 { return 2 }
+        return 1
     }
 }

@@ -31,6 +31,7 @@
 		9798A5B737BDF3E506BA0532 /* WordQuizGame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 766A74B48904C25F24A64312 /* WordQuizGame.swift */; };
 		97F225FD66E5C4A3BA9BC92D /* WordStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D65988A9BAC727A470553EE /* WordStore.swift */; };
 		C03A8197220E5D5852998A1E /* SpellItGame.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23C24B2F031BF4732B6AE91 /* SpellItGame.swift */; };
+		D376B10703F5329A9FA5F6A6 /* StickerBookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD6F9E15671E1D176FC6913 /* StickerBookView.swift */; };
 		FF89399DB2F75EFDBB5F5712 /* cardzerver_export_2026-06-04.json in Resources */ = {isa = PBXBuildFile; fileRef = 02B0B1E125701920820D6E1A /* cardzerver_export_2026-06-04.json */; };
 /* End PBXBuildFile section */
 
@@ -55,6 +56,7 @@
 		BAF72EE4D531E1FED641CE0F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BB3577B36B413DDF83409905 /* SpeechEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechEngine.swift; sourceTree = "<group>"; };
 		C4FD7C3FEC011DE215DEBC87 /* LaunchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchView.swift; sourceTree = "<group>"; };
+		CFD6F9E15671E1D176FC6913 /* StickerBookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerBookView.swift; sourceTree = "<group>"; };
 		E49FB2C78FFB625E95FBD1CE /* MathCardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathCardStore.swift; sourceTree = "<group>"; };
 		EA0E4730A781122629779046 /* WordsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordsApp.swift; sourceTree = "<group>"; };
 		EACB863DC09A0027F59F09E4 /* CountItGame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountItGame.swift; sourceTree = "<group>"; };
@@ -129,6 +131,7 @@
 				39B2EE5E73D3D88017FF545F /* ParentOnboardingView.swift */,
 				A034F558001610B3FEC412DE /* SettingsView.swift */,
 				BB3577B36B413DDF83409905 /* SpeechEngine.swift */,
+				CFD6F9E15671E1D176FC6913 /* StickerBookView.swift */,
 				F708C936AD759E255370A2D8 /* VoicePickerView.swift */,
 				EA0E4730A781122629779046 /* WordsApp.swift */,
 				5D65988A9BAC727A470553EE /* WordStore.swift */,
@@ -227,6 +230,7 @@
 				8EA18D1525D5B182DC30F739 /* SettingsView.swift in Sources */,
 				8874C254434BE7AF78F7FFB6 /* SpeechEngine.swift in Sources */,
 				C03A8197220E5D5852998A1E /* SpellItGame.swift in Sources */,
+				D376B10703F5329A9FA5F6A6 /* StickerBookView.swift in Sources */,
 				5ECEC7BBA6377FDE72909945 /* VoicePickerView.swift in Sources */,
 				9798A5B737BDF3E506BA0532 /* WordQuizGame.swift in Sources */,
 				63079F236961CA2D4BE2135B /* WordScrambleGame.swift in Sources */,
@@ -244,7 +248,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = NEAY582ME4;
 				INFOPLIST_FILE = Sources/Info.plist;
@@ -325,7 +329,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_TEAM = NEAY582ME4;
 				INFOPLIST_FILE = Sources/Info.plist;

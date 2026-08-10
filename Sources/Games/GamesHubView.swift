@@ -63,6 +63,23 @@ enum HomePage: String, Identifiable, CaseIterable {
         default:    return "Play"
         }
     }
+
+    /// What one correct answer in this game is worth in a race.
+    ///
+    /// Every game used to pay a flat +1, which made Memory Match by far
+    /// the best way to score: a matched pair is +1, an EASY board is 8
+    /// pairs, and matching a picture to a word you can't read needs no
+    /// literacy at all. A child optimising for score would correctly
+    /// learn to sit on Memory Match and never spell anything. Points now
+    /// track how much work the answer actually took.
+    var racePoints: Int {
+        switch self {
+        case .spell, .scramble: return 3   // built a whole word
+        case .quiz, .count:     return 2   // one considered choice
+        case .memory:           return 1   // one pair
+        case .read:             return 0   // not in the race ring
+        }
+    }
 }
 
 // Race durations the kid can pick on the hub.
@@ -103,6 +120,7 @@ struct HomeHubView: View {
     // where a parent who went straight to a game never saw it.
     @AppStorage("hasSeenParentOnboarding") private var hasSeenOnboarding = false
     @State private var showOnboarding: Bool = false
+    @State private var showStickers: Bool = false
 
     private let classicPages: [HomePage] = HomePage.allCases
     private var isIPad: Bool { sizeClass == .regular }
@@ -150,6 +168,9 @@ struct HomeHubView: View {
         .fullScreenCover(isPresented: $showOnboarding) {
             ParentOnboardingView()
         }
+        .sheet(isPresented: $showStickers) {
+            StickerBookView(speech: speech)
+        }
     }
 
     // MARK: - Race hub (default)
@@ -187,11 +208,29 @@ struct HomeHubView: View {
                 .font(.system(size: isIPad ? 36 : 28, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
             Spacer()
-            Text("🏁")
-                .font(.system(size: isIPad ? 36 : 28))
+            stickerButton
         }
         .padding(.horizontal, 4)
         .padding(.top, 6)
+    }
+
+    /// Entry to the collection. Replaces a decorative 🏁 that did nothing.
+    private var stickerButton: some View {
+        Button { showStickers = true } label: {
+            HStack(spacing: 6) {
+                Text("⭐️").font(.system(size: isIPad ? 26 : 22))
+                Text("\(WordProgress.shared.masteredCount)")
+                    .font(.system(size: isIPad ? 22 : 18, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 60)
+            .background(Capsule().fill(.white.opacity(0.22))
+                .overlay(Capsule().strokeBorder(.white.opacity(0.45), lineWidth: 1.5)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("My words — \(WordProgress.shared.masteredCount) collected")
     }
 
     private var practiceCard: some View {
@@ -359,6 +398,12 @@ struct HomeHubView: View {
 
             // Tiny version tag in the bottom-right; parental long-press lives here.
             VStack {
+                HStack {
+                    Spacer()
+                    stickerButton
+                        .padding(.trailing, 18)
+                        .padding(.top, 8)
+                }
                 Spacer()
                 HStack {
                     Spacer()
@@ -478,6 +523,10 @@ struct HomeHubView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 activeGame = target
             }
+        }
+        if defaults.bool(forKey: "screenshotShowStickers") {
+            defaults.removeObject(forKey: "screenshotShowStickers")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showStickers = true }
         }
         // Open the race directly — RaceView reads screenshotRace*
         // defaults to freeze itself in a compelling preset state.
