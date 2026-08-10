@@ -32,8 +32,14 @@ struct MemoryMatchGame: View {
     private var isIPad: Bool { sizeClass == .regular }
     private var bg: Color { gameColors[colorIndex % gameColors.count] }
     private var pairCount: Int { boardSize }
-    private var columns: Int { boardSize == 8 ? 4 : 2 }   // EASY: 2×4 tall, HARD: 4×4
-    private var rows: Int { (pairCount * 2) / columns }
+    /// EASY is 2×4 in portrait, but that drew as a narrow strip down the
+    /// middle of a landscape iPad with ~70% of the width empty and the
+    /// bottom row clipped. Widen the board when the screen is wide.
+    private func columns(landscape: Bool) -> Int {
+        if boardSize == 8 { return 4 }          // HARD: 4×4 either way
+        return landscape ? 4 : 2                // EASY: 4×2 wide, 2×4 tall
+    }
+    private func rows(landscape: Bool) -> Int { (pairCount * 2) / columns(landscape: landscape) }
 
     var body: some View {
         GeometryReader { geo in
@@ -49,15 +55,20 @@ struct MemoryMatchGame: View {
 
                     Spacer(minLength: 8)
 
+                    let landscape = geo.size.width > geo.size.height
+                    let nCols = columns(landscape: landscape)
+                    let nRows = rows(landscape: landscape)
                     let spacing: CGFloat = boardSize == 8 ? 10 : 18
                     let hPad: CGFloat = 16
-                    let availW = geo.size.width - hPad * 2 - spacing * CGFloat(columns - 1)
-                    // Also cap by available height so a tall 2×4 grid fits without scrolling
-                    let availH = geo.size.height - 220 - spacing * CGFloat(rows - 1)
-                    let tileByW = availW / CGFloat(columns)
-                    let tileByH = availH / CGFloat(rows)
+                    let availW = geo.size.width - hPad * 2 - spacing * CGFloat(nCols - 1)
+                    // Chrome above the board (top bar + size picker + gaps)
+                    // scales with the type, or the board overflows on iPad.
+                    let chrome = 150 * KidMetrics.textScale
+                    let availH = geo.size.height - chrome - spacing * CGFloat(nRows - 1)
+                    let tileByW = availW / CGFloat(nCols)
+                    let tileByH = availH / CGFloat(nRows)
                     let tile = max(60, min(tileByW, tileByH))
-                    let cols = Array(repeating: GridItem(.fixed(tile), spacing: spacing), count: columns)
+                    let cols = Array(repeating: GridItem(.fixed(tile), spacing: spacing), count: nCols)
                     LazyVGrid(columns: cols, spacing: spacing) {
                         ForEach(Array(cards.enumerated()), id: \.element.id) { idx, card in
                             cardView(card, idx: idx, size: tile)

@@ -36,9 +36,26 @@ struct WordQuizGame: View {
     private var bg: Color { gameColors[colorIndex % gameColors.count] }
 
     var body: some View {
+        GeometryReader { geo in
         ZStack {
             bg.ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.4), value: colorIndex)
+
+            // The four choices were a 2-column grid of aspect-ratio-1
+            // squares, which on a landscape iPad wanted ~660pt per tile —
+            // two rows needing 1320pt against ~1024 of screen. The top
+            // bar, the prompt and the replay button were pushed entirely
+            // off the top and the game was unplayable. Size the tiles to
+            // what's actually left, and go to a single row of four when
+            // the screen is wide.
+            let landscape = geo.size.width > geo.size.height
+            let cols = landscape ? 4 : 2
+            let rows = 4 / cols
+            let gap: CGFloat = 16
+            let chrome: CGFloat = 300 * KidMetrics.textScale
+            let byW = (geo.size.width - 44 - gap * CGFloat(cols - 1)) / CGFloat(cols)
+            let byH = (geo.size.height - chrome - gap * CGFloat(rows - 1)) / CGFloat(rows)
+            let tile = max(90, min(byW, byH))
 
             VStack(spacing: 0) {
                 topBar
@@ -81,10 +98,10 @@ struct WordQuizGame: View {
 
                 Spacer(minLength: 10)
 
-                let cols = Array(repeating: GridItem(.flexible(), spacing: 16), count: 2)
-                LazyVGrid(columns: cols, spacing: 16) {
+                let grid = Array(repeating: GridItem(.fixed(tile), spacing: gap), count: cols)
+                LazyVGrid(columns: grid, spacing: gap) {
                     ForEach(Array(choices.enumerated()), id: \.offset) { idx, word in
-                        choiceTile(word: word, idx: idx)
+                        choiceTile(word: word, idx: idx, side: tile)
                     }
                 }
                 .padding(.horizontal, 22)
@@ -92,6 +109,7 @@ struct WordQuizGame: View {
             }
 
             if showCheer { GameCheer(message: "Yes!\nThat's \(kidCase(answer))!") }
+        }
         }
         .onAppear { newRound(initial: true) }
         .onDisappear {
@@ -119,7 +137,7 @@ struct WordQuizGame: View {
         .padding(.top, 8)
     }
 
-    private func choiceTile(word: String, idx: Int) -> some View {
+    private func choiceTile(word: String, idx: Int, side: CGFloat) -> some View {
         let mark: AnswerMark.State =
             wrongIndex == idx ? .wrong : (rightIndex == idx ? .right : .none)
         return Button { pick(idx) } label: {
@@ -131,14 +149,9 @@ struct WordQuizGame: View {
                         RoundedRectangle(cornerRadius: 22)
                             .strokeBorder(.white.opacity(0.45), lineWidth: 3)
                     )
-                // Fills the tile rather than sitting at a fixed size in
-                // the middle of it, so it grows with the screen.
-                GeometryReader { g in
-                    GameWordImage(word: word, size: min(g.size.width, g.size.height) * 0.78)
-                        .frame(width: g.size.width, height: g.size.height)
-                }
+                GameWordImage(word: word, size: side * 0.78)
             }
-            .aspectRatio(1, contentMode: .fit)
+            .frame(width: side, height: side)
             .answerMark(mark)
         }
         .buttonStyle(KidTileButtonStyle())
