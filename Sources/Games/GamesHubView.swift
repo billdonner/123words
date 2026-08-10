@@ -262,6 +262,18 @@ struct HomeHubView: View {
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                 Spacer(minLength: 0)
+                // Without this the tall card reads as a decorative panel
+                // rather than a button — the portrait version has always
+                // had a chevron and the landscape one lost it.
+                HStack(spacing: 8) {
+                    Text("Open")
+                    Image(systemName: "chevron.right")
+                }
+                .font(.system(size: 17 * hubText, weight: .black, design: .rounded))
+                .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.72))
+                .padding(.vertical, 14)
+                .padding(.horizontal, 34)
+                .background(Capsule().fill(.white))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.vertical, 24)
@@ -351,7 +363,6 @@ struct HomeHubView: View {
     /// and leaving a large empty band beneath it.
     private func raceCard(fill: Bool) -> some View {
         VStack(spacing: 14) {
-            if fill { Spacer(minLength: 0) }
             HStack(spacing: 12) {
                 Text("🏁")
                     .font(.system(size: 34 * hubText))
@@ -390,7 +401,10 @@ struct HomeHubView: View {
 
     private var bestChip: some View {
         HStack(spacing: 4) {
-            Text("⭐️").font(.system(size: 14))
+            // Deliberately not a star: the gold star already means
+            // "words collected" in the title bar, and two gold stars
+            // reading 0 and 24 side by side reads as a contradiction.
+            Text("🏆").font(.system(size: 14 * hubText))
             Text("Best \(displayedBest)")
                 .font(.system(size: 13, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
@@ -433,8 +447,15 @@ struct HomeHubView: View {
                 VStack(spacing: 4) {
                     GameWordImage(word: g.iconWord, size: 40 * hubScale)
                         .frame(width: 40 * hubScale, height: 40 * hubScale)
-                    Text(g.letters)
-                        .font(.system(size: 10 * hubText, weight: .black, design: .rounded))
+                    // Was g.letters — "SPL", "MIX", "QUZ". The same
+                    // unreadable three-letter codes already removed from
+                    // the reader's top bar; a pre-reader can't read them
+                    // and an adult can't decode them either.
+                    Text(g.title)
+                        .font(.system(size: 11 * hubText, weight: .black, design: .rounded))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.7)
                         .foregroundStyle(.white.opacity(0.8))
                 }
                 .frame(maxWidth: .infinity)
