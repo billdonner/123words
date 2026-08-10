@@ -24,7 +24,7 @@ struct StickerBookView: View {
     private var mastered: [String] { Self.words.filter { WordProgress.shared.isMastered($0) } }
 
     var body: some View {
-        let side: CGFloat = isIPad ? 150 : 96
+        let side: CGFloat = 96 * kidScale(UIScreen.main.bounds.width)
         let columns = [GridItem(.adaptive(minimum: side, maximum: side * 1.5),
                                 spacing: isIPad ? 18 : 12)]
         NavigationStack {

@@ -195,7 +195,11 @@ struct HomeHubView: View {
                 Spacer(minLength: 12)
                 raceCard
                 Spacer(minLength: 12)
-                versionTag
+                HStack {
+                    parentButton
+                    Spacer()
+                    versionTag
+                }
             }
             .padding(.horizontal, isIPad ? 32 : 18)
             .padding(.vertical, 12)
@@ -236,8 +240,8 @@ struct HomeHubView: View {
     private var practiceCard: some View {
         Button { showReader = true } label: {
             HStack(spacing: 16) {
-                GameWordImage(word: HomePage.read.iconWord, size: isIPad ? 110 : 80)
-                    .frame(width: isIPad ? 110 : 80, height: isIPad ? 110 : 80)
+                GameWordImage(word: HomePage.read.iconWord, size: isIPad ? 170 : 80)
+                    .frame(width: isIPad ? 170 : 80, height: isIPad ? 170 : 80)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Practice")
                         .font(.system(size: isIPad ? 28 : 22, weight: .black, design: .rounded))
@@ -346,10 +350,10 @@ struct HomeHubView: View {
         HStack(spacing: 10) {
             ForEach(HomePage.allCases.filter { $0 != .read }, id: \.id) { g in
                 VStack(spacing: 4) {
-                    GameWordImage(word: g.iconWord, size: isIPad ? 56 : 40)
-                        .frame(width: isIPad ? 56 : 40, height: isIPad ? 56 : 40)
+                    GameWordImage(word: g.iconWord, size: isIPad ? 96 : 40)
+                        .frame(width: isIPad ? 96 : 40, height: isIPad ? 96 : 40)
                     Text(g.letters)
-                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .font(.system(size: isIPad ? 16 : 10, weight: .black, design: .rounded))
                         .foregroundStyle(.white.opacity(0.8))
                 }
                 .frame(maxWidth: .infinity)
@@ -406,11 +410,13 @@ struct HomeHubView: View {
                 }
                 Spacer()
                 HStack {
+                    parentButton
+                        .padding(.leading, 18)
                     Spacer()
                     versionTag
                         .padding(.trailing, 18)
-                        .padding(.bottom, 30)
                 }
+                .padding(.bottom, 30)
             }
         }
     }
@@ -484,6 +490,30 @@ struct HomeHubView: View {
     }
 
     // MARK: - Version tag (hidden parental settings entry)
+
+    /// A visible way in for grown-ups.
+    ///
+    /// The entry used to be a long press on a camouflaged version label,
+    /// which nobody could find — including the person who owns the app.
+    /// Hiding it was only ever a substitute for protecting it, and now
+    /// that a real gate stands in front of it (one addition question),
+    /// the obscurity buys nothing. Small and low-contrast so it doesn't
+    /// invite a child, plain and labelled so an adult can see it.
+    private var parentButton: some View {
+        Button { showParentGate = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "gearshape.fill")
+                Text("Grown-ups")
+            }
+            .font(.system(size: 15, weight: .heavy, design: .rounded))
+            .foregroundStyle(.white.opacity(0.75))
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(Capsule().fill(.white.opacity(0.12)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Grown-up settings")
+    }
 
     private var versionTag: some View {
         Text(versionString())

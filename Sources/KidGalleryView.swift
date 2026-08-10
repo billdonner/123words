@@ -17,14 +17,15 @@ struct KidGalleryView: View {
     private var isIPad: Bool { sizeClass == .regular }
 
     var body: some View {
-        let columns = [GridItem(.adaptive(minimum: isIPad ? 180 : 110,
-                                          maximum: isIPad ? 260 : 150), spacing: isIPad ? 20 : 12)]
+        let s = kidScale(UIScreen.main.bounds.width)
+        let columns = [GridItem(.adaptive(minimum: 110 * s, maximum: 150 * s),
+                                spacing: isIPad ? 20 : 12)]
         NavigationStack {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: isIPad ? 20 : 12) {
                     ForEach(Array(Self.words.enumerated()), id: \.element) { idx, word in
                         KidGalleryCell(word: word, color: kidGalleryColors[idx % kidGalleryColors.count],
-                                       cellHeight: isIPad ? 180 : 110, fontSize: isIPad ? 22 : 15) {
+                                       cellHeight: 110 * s, fontSize: 15 * s) {
                             speech.speak(word, interrupting: false)
                         }
                     }

@@ -234,10 +234,10 @@ struct CountItGame: View {
                             .strokeBorder(.white.opacity(0.45), lineWidth: 3)
                     )
                 Text("\(n)")
-                    .font(.system(size: isIPad ? 88 : 64, weight: .black, design: .rounded))
+                    .font(.system(size: isIPad ? 120 : 64, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
             }
-            .frame(height: isIPad ? 160 : 110)
+            .frame(height: isIPad ? 210 : 110)
             .answerMark(mark)
         }
         .buttonStyle(KidTileButtonStyle())

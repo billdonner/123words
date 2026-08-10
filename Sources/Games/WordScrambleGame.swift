@@ -34,39 +34,46 @@ struct WordScrambleGame: View {
     private var bg: Color { gameColors[colorIndex % gameColors.count] }
 
     var body: some View {
+        GeometryReader { geo in
         ZStack {
             bg.ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.4), value: colorIndex)
+
+            let s = kidScale(geo.size.width)
+            // Tiles have to fit the row on any width once they scale up.
+            let gap: CGFloat = 12 * s
+            let avail = geo.size.width - 32 - gap * CGFloat(max(scrambled.count - 1, 0))
+            let tile = min(70 * s, floor(avail / CGFloat(max(scrambled.count, 1))))
 
             VStack(spacing: 0) {
                 topBar
                 Spacer(minLength: 4)
 
-                GameWordImage(word: word, size: isIPad ? 220 : 150)
+                GameWordImage(word: word, size: 150 * s)
                     .id(word)
                     .transition(.scale.combined(with: .opacity))
 
                 Text("Unscramble!")
-                    .font(.system(size: 18, weight: .medium, design: .rounded))
+                    .font(.system(size: 18 * s, weight: .medium, design: .rounded))
                     .foregroundStyle(.white)
                     .padding(.top, 10)
 
                 Spacer(minLength: 12)
 
-                HStack(spacing: 10) {
+                HStack(spacing: 10 * s) {
                     ForEach(0..<word.count, id: \.self) { i in
-                        slot(at: i)
+                        slot(at: i, s: s)
                     }
                 }
                 .padding(.horizontal, 16)
 
                 Spacer(minLength: 24)
 
-                HStack(spacing: 12) {
+                HStack(spacing: gap) {
                     ForEach(Array(scrambled.enumerated()), id: \.offset) { idx, letter in
                         GameLetterTile(
                             letter: kidCase(letter),
-                            size: isIPad ? 90 : 70,
+                            size: tile,
                             highlighted: hintIndex == idx,
                             dimmed: used.contains(idx),
                             wrong: wrongIndex == idx,
@@ -78,6 +85,7 @@ struct WordScrambleGame: View {
             }
 
             if showCheer { GameCheer(message: "Unscrambled!\n\(kidCase(word))") }
+        }
         }
         .onAppear { startRound(initial: true) }
         .onDisappear {
@@ -113,20 +121,20 @@ struct WordScrambleGame: View {
         .padding(.top, 8)
     }
 
-    private func slot(at i: Int) -> some View {
+    private func slot(at i: Int, s: CGFloat) -> some View {
         let letters = Array(kidCase(word))
         let revealed = i < used.count
         return ZStack {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(.white.opacity(0.55), lineWidth: 3)
-                .frame(width: isIPad ? 72 : 56, height: isIPad ? 86 : 70)
+                .frame(width: 56 * s, height: 70 * s)
                 .background(
                     RoundedRectangle(cornerRadius: 14)
                         .fill(.white.opacity(revealed ? 0.25 : 0.05))
                 )
             if revealed {
                 Text(String(letters[i]))
-                    .font(.system(size: isIPad ? 48 : 36, weight: .black, design: .rounded))
+                    .font(.system(size: 36 * s, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                     .transition(.scale.combined(with: .opacity))
             }

@@ -43,25 +43,27 @@ struct SpellItGame: View {
             bg.ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.4), value: colorIndex)
 
+            let s = kidScale(geo.size.width)
+
             VStack(spacing: 0) {
                 topBar
                 Spacer(minLength: 4)
 
-                GameWordImage(word: word, size: isIPad ? 220 : 150)
+                GameWordImage(word: word, size: 150 * s)
                     .id(word)
                     .transition(.scale.combined(with: .opacity))
 
                 Text("Spell the word")
-                    .font(.system(size: 18, weight: .medium, design: .rounded))
+                    .font(.system(size: 18 * s, weight: .medium, design: .rounded))
                     .foregroundStyle(.white)
                     .padding(.top, 10)
 
                 Spacer(minLength: 8)
 
                 // Answer slots
-                HStack(spacing: 10) {
+                HStack(spacing: 10 * s) {
                     ForEach(0..<word.count, id: \.self) { i in
-                        slot(at: i)
+                        slot(at: i, s: s)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -76,10 +78,10 @@ struct SpellItGame: View {
                 // on one letter's visible edge registered as its
                 // neighbour's, which in Race mode ended the word.
                 let hPad: CGFloat = 18
-                let gap: CGFloat = 10
+                let gap: CGFloat = 10 * s
                 let cols = min(keyboard.count, isIPad ? 7 : 6)
                 let avail = geo.size.width - hPad * 2 - gap * CGFloat(cols - 1)
-                let tile = min(isIPad ? 80 : 60, floor(avail / CGFloat(cols)))
+                let tile = min(60 * s, floor(avail / CGFloat(cols)))
                 let kbCols = Array(repeating: GridItem(.fixed(tile), spacing: gap), count: cols)
                 LazyVGrid(columns: kbCols, spacing: gap) {
                     ForEach(Array(keyboard.enumerated()), id: \.offset) { idx, letter in
@@ -136,20 +138,20 @@ struct SpellItGame: View {
         .padding(.top, 8)
     }
 
-    private func slot(at i: Int) -> some View {
+    private func slot(at i: Int, s: CGFloat) -> some View {
         let letters = Array(kidCase(word))
         let revealed = i < typed.count
         return ZStack {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(.white.opacity(0.55), lineWidth: 3)
-                .frame(width: isIPad ? 72 : 56, height: isIPad ? 86 : 70)
+                .frame(width: 56 * s, height: 70 * s)
                 .background(
                     RoundedRectangle(cornerRadius: 14)
                         .fill(.white.opacity(revealed ? 0.25 : 0.05))
                 )
             if revealed {
                 Text(String(letters[i]))
-                    .font(.system(size: isIPad ? 48 : 36, weight: .black, design: .rounded))
+                    .font(.system(size: 36 * s, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                     .transition(.scale.combined(with: .opacity))
             }

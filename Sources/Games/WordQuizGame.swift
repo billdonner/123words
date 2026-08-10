@@ -131,7 +131,12 @@ struct WordQuizGame: View {
                         RoundedRectangle(cornerRadius: 22)
                             .strokeBorder(.white.opacity(0.45), lineWidth: 3)
                     )
-                GameWordImage(word: word, size: isIPad ? 140 : 100)
+                // Fills the tile rather than sitting at a fixed size in
+                // the middle of it, so it grows with the screen.
+                GeometryReader { g in
+                    GameWordImage(word: word, size: min(g.size.width, g.size.height) * 0.78)
+                        .frame(width: g.size.width, height: g.size.height)
+                }
             }
             .aspectRatio(1, contentMode: .fit)
             .answerMark(mark)

@@ -22,6 +22,17 @@ let gameColors: [Color] = [
     Color(red: 0.670, green: 0.529, blue: 0.071),   // yellow
 ]
 
+/// Sizing multiplier relative to a 393pt-wide iPhone.
+///
+/// Every size in the app was tuned on an iPhone and then bumped once for
+/// "iPad" — a single binary guess covering everything from an 8.3-inch
+/// mini to a 13-inch Pro. On the big Pro that left near-iPhone-sized
+/// artwork adrift in a very large screen. Deriving the multiplier from
+/// the real width handles every iPad, and split-screen, on its own.
+func kidScale(_ width: CGFloat) -> CGFloat {
+    min(max(width / 393.0, 1.0), 2.6)
+}
+
 func randomGameColor(excluding: Int? = nil) -> Int {
     var idx: Int
     repeat { idx = Int.random(in: 0..<gameColors.count) }
