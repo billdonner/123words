@@ -39,7 +39,7 @@ struct WordScrambleGame: View {
             bg.ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.4), value: colorIndex)
 
-            let s = kidScale(geo.size.width)
+            let s = KidMetrics.scale(in: geo.size)
             // Tiles have to fit the row on any width once they scale up.
             let gap: CGFloat = 12 * s
             let avail = geo.size.width - 32 - gap * CGFloat(max(scrambled.count - 1, 0))
@@ -54,7 +54,7 @@ struct WordScrambleGame: View {
                     .transition(.scale.combined(with: .opacity))
 
                 Text("Unscramble!")
-                    .font(.system(size: 18 * s, weight: .medium, design: .rounded))
+                    .font(.system(size: 18 * (1 + (s - 1) * 0.5), weight: .medium, design: .rounded))
                     .foregroundStyle(.white)
                     .padding(.top, 10)
 
@@ -103,7 +103,7 @@ struct WordScrambleGame: View {
             }
             Spacer()
             Text("Word Scramble")
-                .font(.system(size: 22, weight: .black, design: .rounded))
+                .font(.system(size: 22 * KidMetrics.textScale, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
             Spacer()
             Button { speech.speak(word) } label: {

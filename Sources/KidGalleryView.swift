@@ -17,7 +17,7 @@ struct KidGalleryView: View {
     private var isIPad: Bool { sizeClass == .regular }
 
     var body: some View {
-        let s = kidScale(UIScreen.main.bounds.width)
+        let s = KidMetrics.scale
         let columns = [GridItem(.adaptive(minimum: 110 * s, maximum: 150 * s),
                                 spacing: isIPad ? 20 : 12)]
         NavigationStack {

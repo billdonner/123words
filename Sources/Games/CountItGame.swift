@@ -167,7 +167,7 @@ struct CountItGame: View {
             .accessibilityLabel(showDots ? "Hide the counting dots" : "Show the counting dots")
             Spacer()
             Text("Count It")
-                .font(.system(size: 22, weight: .black, design: .rounded))
+                .font(.system(size: 22 * KidMetrics.textScale, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
             Spacer()
             Button {

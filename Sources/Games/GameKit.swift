@@ -33,6 +33,41 @@ func kidScale(_ width: CGFloat) -> CGFloat {
     min(max(width / 393.0, 1.0), 2.6)
 }
 
+/// One place that decides how big things are, so screens stop each
+/// inventing their own answer.
+///
+/// The rule that matters: scale off the **shorter** screen dimension, so
+/// rotating the iPad doesn't change the size of anything. Scaling off the
+/// raw width meant a 10.9-inch iPad jumped a whole size class on rotation
+/// — text grew ~25% and overflowed the screen.
+enum KidMetrics {
+    /// Shorter side of the screen — stable across rotation.
+    /// (Uses the main screen, so it doesn't track iPad split-screen; the
+    /// app is meant to be used full-screen by a child.)
+    static var reference: CGFloat {
+        let b = UIScreen.main.bounds
+        return min(b.width, b.height)
+    }
+
+    /// Artwork multiplier against a 393pt iPhone.
+    static var scale: CGFloat { kidScale(reference) }
+
+    /// Text multiplier. Half the artwork increase: 2.6x is right for a
+    /// picture and shouting for a heading.
+    static var textScale: CGFloat { 1 + (scale - 1) * 0.5 }
+
+    /// A comfortable line length for body copy. Capped in absolute points
+    /// — scaling the measure *and* the type compounds, which is how the
+    /// onboarding ended up running the full width of a 13-inch iPad.
+    static var readableWidth: CGFloat { min(700, 560 * textScale) }
+
+    /// Orientation-stable scale from a local geometry, for views that
+    /// already have a GeometryReader.
+    static func scale(in size: CGSize) -> CGFloat {
+        kidScale(min(size.width, size.height))
+    }
+}
+
 func randomGameColor(excluding: Int? = nil) -> Int {
     var idx: Int
     repeat { idx = Int.random(in: 0..<gameColors.count) }

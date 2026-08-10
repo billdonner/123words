@@ -238,7 +238,7 @@ struct HomeHubView: View {
         hubLandscape = size.width > size.height
         // Scale off the *smaller* dimension so rotating the iPad doesn't
         // change how big everything is.
-        hubScale = kidScale(min(size.width, size.height))
+        hubScale = KidMetrics.scale(in: size)
     }
 
     /// Artwork can take the full multiplier; text cannot — 28pt of title

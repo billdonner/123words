@@ -112,7 +112,7 @@ struct MemoryMatchGame: View {
             }
             Spacer()
             Text("Memory Match")
-                .font(.system(size: 22, weight: .black, design: .rounded))
+                .font(.system(size: 22 * KidMetrics.textScale, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
             Spacer()
             Button { newRound() } label: {

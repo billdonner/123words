@@ -43,7 +43,7 @@ struct SpellItGame: View {
             bg.ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.4), value: colorIndex)
 
-            let s = kidScale(geo.size.width)
+            let s = KidMetrics.scale(in: geo.size)
 
             VStack(spacing: 0) {
                 topBar
@@ -54,7 +54,7 @@ struct SpellItGame: View {
                     .transition(.scale.combined(with: .opacity))
 
                 Text("Spell the word")
-                    .font(.system(size: 18 * s, weight: .medium, design: .rounded))
+                    .font(.system(size: 18 * (1 + (s - 1) * 0.5), weight: .medium, design: .rounded))
                     .foregroundStyle(.white)
                     .padding(.top, 10)
 
@@ -118,7 +118,7 @@ struct SpellItGame: View {
             }
             Spacer()
             Text("Spell It")
-                .font(.system(size: 22, weight: .black, design: .rounded))
+                .font(.system(size: 22 * KidMetrics.textScale, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
             Spacer()
             Button {
