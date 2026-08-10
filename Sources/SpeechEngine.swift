@@ -171,15 +171,35 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     /// launch. `.duckOthers` used to be applied for the whole foreground
     /// lifetime of the app, so a parent's podcast stayed ducked through
     /// every silent gap — including the multi-second ones between words.
+    private var sessionActive = false
+    private var deactivateWork: DispatchWorkItem?
+
     private func activateSession() {
+        deactivateWork?.cancel()
+        deactivateWork = nil
+        guard !sessionActive else { return }
         try? AVAudioSession.sharedInstance().setActive(true)
+        sessionActive = true
     }
 
+    /// Releasing the session the instant speech stops made the *next*
+    /// utterance start before the audio route had ramped up, so its first
+    /// phoneme was clipped — which is why the first letter of a spell pass
+    /// went missing. Hold the session for a few seconds of silence
+    /// instead; ducking is still released, just not between every letter.
     private func deactivateSessionIfIdle() {
-        guard !synthesizer.isSpeaking, !isInSpellingMode, !pendingSpell else { return }
-        try? AVAudioSession.sharedInstance().setActive(
-            false, options: .notifyOthersOnDeactivation
-        )
+        deactivateWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            guard !self.synthesizer.isSpeaking, !self.isInSpellingMode,
+                  !self.pendingSpell, !self.isSpeaking else { return }
+            try? AVAudioSession.sharedInstance().setActive(
+                false, options: .notifyOthersOnDeactivation
+            )
+            self.sessionActive = false
+        }
+        deactivateWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: work)
     }
 
     private func observeSessionEvents() {
@@ -343,6 +363,10 @@ class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         u.pitchMultiplier = pitch
         u.volume = 1.0
         u.voice = resolvedVoice()
+        // A beat of silence in front of every utterance. Single phonemes
+        // are only ~0.25–0.4s long, so even a few tens of milliseconds of
+        // route ramp-up eats an audible part of the first sound.
+        u.preUtteranceDelay = 0.08
         return u
     }
 
