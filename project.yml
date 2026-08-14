@@ -33,7 +33,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.123words.app
         PRODUCT_NAME: "123words"
-        MARKETING_VERSION: "1.11"
+        MARKETING_VERSION: "1.12"
         CURRENT_PROJECT_VERSION: 59
         DEVELOPMENT_TEAM: NEAY582ME4
         SWIFT_VERSION: "5.9"
