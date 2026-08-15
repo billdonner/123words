@@ -58,10 +58,10 @@ capture_set() {
 
   capture "$device" "$output_dir/01-home.png"
   capture "$device" "$output_dir/02-read.png" \
-    screenshotLaunchGame=read:string screenshotWord=fox:string
+    screenshotLaunchGame=read:string screenshotWord=fox:string screenshotColorIndex=3:int
   capture "$device" "$output_dir/03-phonics-settings.png" \
     screenshotLaunchGame=read:string screenshotWord=cat:string \
-    screenshotShowSettings=true:bool
+    screenshotShowSettings=true:bool screenshotColorIndex=3:int
   capture "$device" "$output_dir/04-my-words.png" \
     screenshotShowStickers=true:bool
   capture "$device" "$output_dir/05-listen-and-pick.png" \
@@ -70,10 +70,10 @@ capture_set() {
   capture "$device" "$output_dir/06-spell-it.png" \
     screenshotLaunchGame=spell:string screenshotColorIndex=3:int \
     screenshotGameWord=cat:string screenshotSpellTypedCount=1:int
-  capture "$device" "$output_dir/07-race-results.png" \
+  capture "$device" "$output_dir/07-race-in-progress.png" \
     screenshotStartRace=true:bool screenshotRaceTab=quiz:string \
-    screenshotRaceScore=24:int screenshotRaceRemaining=0:float \
-    screenshotRaceFinished=true:bool screenshotColorIndex=4:int \
+    screenshotRaceScore=12:int screenshotRaceRemaining=38:float \
+    screenshotColorIndex=4:int \
     screenshotGameWords=cat,dog,fox,pig:array screenshotQuizAnswer=fox:string
 }
 

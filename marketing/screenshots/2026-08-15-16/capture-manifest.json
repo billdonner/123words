@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "app": {"name": "123 Words", "bundleID": "com.123words.app", "version": "1.12", "build": "60"},
+  "source": {"repository": "123words", "captureCommit": "15dd6c0", "configuration": "Release", "xcode": "26.3"},
+  "environment": {
+    "runtime": "iOS 26.2 (23C54)",
+    "locale": "en-US",
+    "language": "en",
+    "orientation": "portrait",
+    "deviceSet": "/private/tmp/123words-sim-device-set",
+    "devices": [
+      {"family": "iPhone", "name": "iPhone 17 Pro Max", "udid": "628ACB9A-F848-4E7B-A1F4-252D461244A5", "pixels": "1320x2868"},
+      {"family": "iPad", "name": "iPad Pro 13-inch (M5)", "udid": "DB9C7B1F-8AAD-49F2-ABE3-40341318A15B", "pixels": "2064x2752"}
+    ]
+  },
+  "syntheticData": {
+    "containsRealUserData": false,
+    "masteredWords": ["cat", "cow", "dog", "fox", "pig", "sun"],
+    "raceBest": 21,
+    "raceScore": 12,
+    "raceSecondsRemaining": 38,
+    "quizWords": ["cat", "dog", "fox", "pig"],
+    "phonicsMode": "sounds",
+    "provenance": "Deterministic NSArgumentDomain screenshot hooks; app-only synthetic state, no account or production data."
+  },
+  "slotOrder": [
+    {"slot": 1, "scenario": "current race/practice hub", "file": "01-home.png"},
+    {"slot": 2, "scenario": "untimed reader, word fox", "file": "02-read.png"},
+    {"slot": 3, "scenario": "phonics settings, Sounds selected", "file": "03-phonics-settings.png"},
+    {"slot": 4, "scenario": "My Words with six synthetic mastered words", "file": "04-my-words.png"},
+    {"slot": 5, "scenario": "Listen & Pick with fixed choices", "file": "05-listen-and-pick.png"},
+    {"slot": 6, "scenario": "Spell It, CAT with C entered", "file": "06-spell-it.png"},
+    {"slot": 7, "scenario": "one-minute race in progress", "file": "07-race-in-progress.png"}
+  ],
+  "notes": [
+    "Raw simulator PNGs contain an alpha channel; Screenker candidate export must flatten to RGB before ASC use.",
+    "Rejected 07-race-results.png files are retained for audit only and are excluded from this manifest because the synthetic finished-race path captured SpringBoard."
+  ]
+}
