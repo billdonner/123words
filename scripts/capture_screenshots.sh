@@ -38,9 +38,10 @@ write_default() {
 reset_synthetic_state() {
   local device="$1"
   xcrun simctl terminate "$device" "$BUNDLE_ID" 2>/dev/null || true
-  for key in "${SCREENSHOT_KEYS[@]}"; do
-    xcrun simctl spawn "$device" defaults delete "$BUNDLE_ID" "$key" 2>/dev/null || true
-  done
+  # This app installation is dedicated to synthetic capture. Resetting its
+  # complete defaults domain is both faster and safer than leaving an old
+  # product or screenshot key behind between scenarios.
+  xcrun simctl spawn "$device" defaults delete "$BUNDLE_ID" 2>/dev/null || true
 
   xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" hasSeenParentOnboarding -bool true
   xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" hubMode -string race
