@@ -78,7 +78,6 @@ for device in "$IPHONE_ID" "$IPAD_ID"; do
   xcrun simctl boot "$device" 2>/dev/null || true
   open -gj -a Simulator --args -CurrentDeviceUDID "$device" 2>/dev/null || true
   xcrun simctl bootstatus "$device" -b
-  xcrun simctl uninstall "$device" "$BUNDLE_ID" 2>/dev/null || true
   xcrun simctl install "$device" "$APP_PATH"
   xcrun simctl status_bar "$device" override \
     --time '9:41' --batteryState charged --batteryLevel 100 \
