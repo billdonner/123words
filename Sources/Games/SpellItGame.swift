@@ -249,8 +249,9 @@ struct SpellItGame: View {
         typed = []
         colorIndex = randomGameColor(excluding: colorIndex)
         keyboard = makeKeyboard(for: new)
-        if let count = UserDefaults.standard.object(forKey: "screenshotSpellTypedCount") as? NSNumber {
-            let prefix = Array(new.lowercased().prefix(max(0, min(new.count, count.intValue))))
+        if UserDefaults.standard.object(forKey: "screenshotSpellTypedCount") != nil {
+            let count = UserDefaults.standard.integer(forKey: "screenshotSpellTypedCount")
+            let prefix = Array(new.lowercased().prefix(max(0, min(new.count, count))))
             var used = Set<Int>()
             typed = prefix.compactMap { letter in
                 guard let index = keyboard.indices.first(where: {

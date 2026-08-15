@@ -665,8 +665,8 @@ struct HomeHubView: View {
         if defaults.bool(forKey: "screenshotStartRace") {
             defaults.removeObject(forKey: "screenshotStartRace")
             // Honor an optional duration override; default to 60s.
-            if let d = defaults.object(forKey: "screenshotRaceDuration") as? Double {
-                raceDurationLaunched = d
+            if defaults.object(forKey: "screenshotRaceDuration") != nil {
+                raceDurationLaunched = defaults.double(forKey: "screenshotRaceDuration")
                 defaults.removeObject(forKey: "screenshotRaceDuration")
             } else {
                 raceDurationLaunched = 60

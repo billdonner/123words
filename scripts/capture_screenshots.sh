@@ -12,57 +12,20 @@ DERIVED_DATA="${CAPTURE_DERIVED_DATA:-/private/tmp/123words-screenshot-derived}"
 OUTPUT_ROOT="${CAPTURE_OUTPUT_ROOT:-marketing/screenshots/2026-08-15-16/raw}"
 APP_PATH="$DERIVED_DATA/Build/Products/Release-iphonesimulator/123words.app"
 
-SCREENSHOT_KEYS=(
-  screenshotShowVoicePicker screenshotShowSettings screenshotShowGallery
-  screenshotShowStickers screenshotWord screenshotHomePage screenshotLaunchGame
-  screenshotStartRace screenshotRaceDuration screenshotRaceTab
-  screenshotRaceScore screenshotRaceRemaining screenshotRaceFinished
-  screenshotColorIndex screenshotGameWord screenshotGameWords
-  screenshotQuizAnswer screenshotSpellTypedCount
-)
-
-write_default() {
-  local device="$1" key="$2" value="$3" type="$4"
-  case "$type" in
-    bool) xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -bool "$value" ;;
-    int) xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -int "$value" ;;
-    float) xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -float "$value" ;;
-    array)
-      IFS=',' read -r -a values <<< "$value"
-      xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -array "${values[@]}"
-      ;;
-    *) xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -string "$value" ;;
-  esac
-}
-
-reset_synthetic_state() {
-  local device="$1"
-  xcrun simctl terminate "$device" "$BUNDLE_ID" 2>/dev/null || true
-  # This app installation is dedicated to synthetic capture. Resetting its
-  # complete defaults domain is both faster and safer than leaving an old
-  # product or screenshot key behind between scenarios.
-  xcrun simctl spawn "$device" defaults delete "$BUNDLE_ID" 2>/dev/null || true
-
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" hasSeenParentOnboarding -bool true
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" hubMode -string race
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" raceDuration -float 60
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" raceBest_60 -int 21
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" raceLast_60 -int 18
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" onlyWordsWithImages -bool true
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" isUppercase -bool true
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" letterVoice -string sounds
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" mathAllowAdd -bool true
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" mathAllowSub -bool false
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" wordBoxes \
-    -dict cat 3 cow 3 dog 3 fox 3 pig 3 sun 3
-  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" wordSeenCounts \
-    -dict cat 9 cow 8 dog 10 fox 7 pig 8 sun 9
-}
-
 capture() {
   local device="$1" output="$2"
   shift 2
-  reset_synthetic_state "$device"
+  xcrun simctl terminate "$device" "$BUNDLE_ID" 2>/dev/null || true
+
+  # NSArgumentDomain values exist only for this launch, so no screenshot
+  # hook or synthetic state can leak into the next scenario.
+  local launch_args=(
+    -AppleLanguages '(en)' -AppleLocale en_US
+    -hasSeenParentOnboarding YES -hubMode race
+    -raceDuration 60 -raceBest_60 21 -raceLast_60 18
+    -onlyWordsWithImages YES -isUppercase YES -letterVoice sounds
+    -mathAllowAdd YES -mathAllowSub NO -screenshotSyntheticMastery YES
+  )
 
   local pair key value type
   for pair in "$@"; do
@@ -70,11 +33,10 @@ capture() {
     value="${pair#*=}"
     type="${value##*:}"
     value="${value%:*}"
-    write_default "$device" "$key" "$value" "$type"
+    launch_args+=("-$key" "$value")
   done
 
-  xcrun simctl launch "$device" "$BUNDLE_ID" \
-    -AppleLanguages '(en)' -AppleLocale en_US >/dev/null
+  xcrun simctl launch "$device" "$BUNDLE_ID" "${launch_args[@]}" >/dev/null
   sleep 5
   xcrun simctl io "$device" screenshot "$output" >/dev/null
   echo "captured $output"

@@ -324,8 +324,10 @@ struct RaceView: View {
                   || d.object(forKey: "screenshotRaceRemaining") != nil
                   || d.bool(forKey: "screenshotRaceFinished")
         guard frozen else { return }
-        let score = d.object(forKey: "screenshotRaceScore") as? Int ?? 0
-        let remaining = d.object(forKey: "screenshotRaceRemaining") as? Double ?? duration / 2
+        let score = d.object(forKey: "screenshotRaceScore") == nil
+            ? 0 : d.integer(forKey: "screenshotRaceScore")
+        let remaining = d.object(forKey: "screenshotRaceRemaining") == nil
+            ? duration / 2 : d.double(forKey: "screenshotRaceRemaining")
         let finished = d.bool(forKey: "screenshotRaceFinished")
         // Plausible per-game breakdown for the results overlay.
         let perGame: [HomePage: Int] = finished

@@ -41,8 +41,13 @@ final class WordProgress {
     private var seen: [String: Int]
 
     private init() {
-        boxes = Self.readCounts(Self.boxKey)
-        seen  = Self.readCounts(Self.seenKey)
+        if UserDefaults.standard.bool(forKey: "screenshotSyntheticMastery") {
+            boxes = ["cat": 3, "cow": 3, "dog": 3, "fox": 3, "pig": 3, "sun": 3]
+            seen = ["cat": 9, "cow": 8, "dog": 10, "fox": 7, "pig": 8, "sun": 9]
+        } else {
+            boxes = Self.readCounts(Self.boxKey)
+            seen  = Self.readCounts(Self.seenKey)
+        }
     }
 
     /// Reads a `[String: Int]` out of UserDefaults value-by-value.
