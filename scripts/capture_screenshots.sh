@@ -12,7 +12,15 @@ IPAD_ID="${IPAD_ID:-DB9C7B1F-8AAD-49F2-ABE3-40341318A15B}"
 DERIVED_DATA="${CAPTURE_DERIVED_DATA:-/private/tmp/123words-screenshot-derived}"
 OUTPUT_ROOT="${CAPTURE_OUTPUT_ROOT:-marketing/screenshots/2026-08-15-16/raw}"
 APP_PATH="$DERIVED_DATA/Build/Products/Release-iphonesimulator/123words.app"
+CAPTURE_FAMILY="${CAPTURE_FAMILY:-all}"
 SIMCTL=(xcrun simctl --set "$DEVICE_SET")
+
+case "$CAPTURE_FAMILY" in
+  all) DEVICES=("$IPHONE_ID" "$IPAD_ID") ;;
+  iphone) DEVICES=("$IPHONE_ID") ;;
+  ipad) DEVICES=("$IPAD_ID") ;;
+  *) echo "CAPTURE_FAMILY must be all, iphone, or ipad" >&2; exit 2 ;;
+esac
 
 capture() {
   local device="$1" output="$2"
@@ -76,7 +84,7 @@ xcodebuild -quiet -project 123words.xcodeproj -scheme Words123 \
   -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$DERIVED_DATA" CODE_SIGNING_ALLOWED=NO build
 
-for device in "$IPHONE_ID" "$IPAD_ID"; do
+for device in "${DEVICES[@]}"; do
   "${SIMCTL[@]}" boot "$device" 2>/dev/null || true
   "${SIMCTL[@]}" bootstatus "$device" -b
   "${SIMCTL[@]}" install "$device" "$APP_PATH"
@@ -85,10 +93,14 @@ for device in "$IPHONE_ID" "$IPAD_ID"; do
     --wifiBars 3 --cellularBars 4 2>/dev/null || true
 done
 
-echo "Capturing iPhone 17 Pro Max portrait..."
-capture_set "$IPHONE_ID" "$OUTPUT_ROOT/iPhone-6.9"
+if [[ "$CAPTURE_FAMILY" != ipad ]]; then
+  echo "Capturing iPhone 17 Pro Max portrait..."
+  capture_set "$IPHONE_ID" "$OUTPUT_ROOT/iPhone-6.9"
+fi
 
-echo "Capturing iPad Pro 13-inch portrait..."
-capture_set "$IPAD_ID" "$OUTPUT_ROOT/iPad-13"
+if [[ "$CAPTURE_FAMILY" != iphone ]]; then
+  echo "Capturing iPad Pro 13-inch portrait..."
+  capture_set "$IPAD_ID" "$OUTPUT_ROOT/iPad-13"
+fi
 
 echo "Capture complete: $OUTPUT_ROOT"
