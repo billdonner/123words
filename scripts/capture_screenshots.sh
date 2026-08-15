@@ -6,16 +6,18 @@
 set -euo pipefail
 
 BUNDLE_ID="com.123words.app"
-IPHONE_ID="${IPHONE_ID:-F7030DEA-CC5E-4F5F-8A53-65774CDDC775}"
-IPAD_ID="${IPAD_ID:-09EAF64C-1949-42FD-95D7-32AAD32C2745}"
+DEVICE_SET="${CAPTURE_DEVICE_SET:-/private/tmp/123words-sim-device-set}"
+IPHONE_ID="${IPHONE_ID:-628ACB9A-F848-4E7B-A1F4-252D461244A5}"
+IPAD_ID="${IPAD_ID:-DB9C7B1F-8AAD-49F2-ABE3-40341318A15B}"
 DERIVED_DATA="${CAPTURE_DERIVED_DATA:-/private/tmp/123words-screenshot-derived}"
 OUTPUT_ROOT="${CAPTURE_OUTPUT_ROOT:-marketing/screenshots/2026-08-15-16/raw}"
 APP_PATH="$DERIVED_DATA/Build/Products/Release-iphonesimulator/123words.app"
+SIMCTL=(xcrun simctl --set "$DEVICE_SET")
 
 capture() {
   local device="$1" output="$2"
   shift 2
-  xcrun simctl terminate "$device" "$BUNDLE_ID" 2>/dev/null || true
+  "${SIMCTL[@]}" terminate "$device" "$BUNDLE_ID" 2>/dev/null || true
 
   # NSArgumentDomain values exist only for this launch, so no screenshot
   # hook or synthetic state can leak into the next scenario.
@@ -36,9 +38,9 @@ capture() {
     launch_args+=("-$key" "$value")
   done
 
-  xcrun simctl launch "$device" "$BUNDLE_ID" "${launch_args[@]}" >/dev/null
+  "${SIMCTL[@]}" launch "$device" "$BUNDLE_ID" "${launch_args[@]}" >/dev/null
   sleep 5
-  xcrun simctl io "$device" screenshot "$output" >/dev/null
+  "${SIMCTL[@]}" io "$device" screenshot "$output" >/dev/null
   echo "captured $output"
 }
 
@@ -71,15 +73,14 @@ echo "Generating the Xcode project and building 1.12 (60) Release..."
 xcodegen generate
 xcodebuild -quiet -project 123words.xcodeproj -scheme Words123 \
   -configuration Release -sdk iphonesimulator \
-  -destination "platform=iOS Simulator,id=$IPHONE_ID" \
+  -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$DERIVED_DATA" CODE_SIGNING_ALLOWED=NO build
 
 for device in "$IPHONE_ID" "$IPAD_ID"; do
-  xcrun simctl boot "$device" 2>/dev/null || true
-  open -gj -a Simulator --args -CurrentDeviceUDID "$device" 2>/dev/null || true
-  xcrun simctl bootstatus "$device" -b
-  xcrun simctl install "$device" "$APP_PATH"
-  xcrun simctl status_bar "$device" override \
+  "${SIMCTL[@]}" boot "$device" 2>/dev/null || true
+  "${SIMCTL[@]}" bootstatus "$device" -b
+  "${SIMCTL[@]}" install "$device" "$APP_PATH"
+  "${SIMCTL[@]}" status_bar "$device" override \
     --time '9:41' --batteryState charged --batteryLevel 100 \
     --wifiBars 3 --cellularBars 4 2>/dev/null || true
 done
