@@ -212,7 +212,9 @@ struct WordQuizGame: View {
         let g = roundGen
         let pool = GameWordPool.randomDistinct(count: 4)
         choices = pool
-        answer = pool.randomElement() ?? "cat"
+        let fixedAnswer = UserDefaults.standard.string(forKey: "screenshotQuizAnswer")
+        answer = fixedAnswer.flatMap { pool.contains($0) ? $0 : nil }
+            ?? pool.randomElement() ?? "cat"
         wrongIndex = nil
         rightIndex = nil
         locked = false

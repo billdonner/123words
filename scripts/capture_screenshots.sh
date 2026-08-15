@@ -1,117 +1,131 @@
 #!/usr/bin/env bash
-# Capture App Store screenshots from both sims.
-# Sets UserDefaults to drive the app to a target home page, game, or race
-# state, launches, and screenshots. Race shots use the screenshotRace*
-# hooks in RaceView/RaceSession to freeze a compelling preset.
+# Deterministic App Store capture set for the 1.12 UI refresh.
+#
+# Writes only to marketing/screenshots/2026-08-15-16/raw. It never changes
+# the published AppStore/Screenshots baseline or anything in App Store Connect.
 set -euo pipefail
 
-BUNDLE=com.123words.app
-IPHONE=C816FD4C-5914-4170-8A4A-C432D0C73CEC   # iPhone 16 Pro Max (6.9", 1320x2868)
-IPAD=F4AA8422-290E-4C7D-8D07-DA15769AC23F     # iPad Pro 13" (2064x2752)
+BUNDLE_ID="com.123words.app"
+IPHONE_ID="${IPHONE_ID:-E77E7A03-DE6A-427E-93EC-00888401EB30}"
+IPAD_ID="${IPAD_ID:-297C0281-105B-492C-BA4F-38AE8E79BFDA}"
+DERIVED_DATA="${CAPTURE_DERIVED_DATA:-/private/tmp/123words-screenshot-derived}"
+OUTPUT_ROOT="${CAPTURE_OUTPUT_ROOT:-marketing/screenshots/2026-08-15-16/raw}"
+APP_PATH="$DERIVED_DATA/Build/Products/Release-iphonesimulator/123words.app"
 
-OUT_IPHONE=AppStore/Screenshots/iPhone
-OUT_IPAD=AppStore/Screenshots/iPad
-
-# All keys we ever poke; cleared before each shot so state is hermetic.
-SCRATCH_KEYS=(
+SCREENSHOT_KEYS=(
   screenshotShowVoicePicker screenshotShowSettings screenshotShowGallery
-  screenshotWord screenshotHomePage screenshotLaunchGame
+  screenshotShowStickers screenshotWord screenshotHomePage screenshotLaunchGame
   screenshotStartRace screenshotRaceDuration screenshotRaceTab
   screenshotRaceScore screenshotRaceRemaining screenshotRaceFinished
+  screenshotColorIndex screenshotGameWord screenshotGameWords
+  screenshotQuizAnswer screenshotSpellTypedCount
 )
 
-# capture <device> <output> -- then any number of "key=value:type" pairs.
-# type ∈ string,bool,int,float. Example: "screenshotStartRace=true:bool".
+write_default() {
+  local device="$1" key="$2" value="$3" type="$4"
+  case "$type" in
+    bool) xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -bool "$value" ;;
+    int) xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -int "$value" ;;
+    float) xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -float "$value" ;;
+    array)
+      IFS=',' read -r -a values <<< "$value"
+      xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -array "${values[@]}"
+      ;;
+    *) xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" "$key" -string "$value" ;;
+  esac
+}
+
+reset_synthetic_state() {
+  local device="$1"
+  xcrun simctl terminate "$device" "$BUNDLE_ID" 2>/dev/null || true
+  for key in "${SCREENSHOT_KEYS[@]}"; do
+    xcrun simctl spawn "$device" defaults delete "$BUNDLE_ID" "$key" 2>/dev/null || true
+  done
+
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" hasSeenParentOnboarding -bool true
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" hubMode -string race
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" raceDuration -float 60
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" raceBest_60 -int 21
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" raceLast_60 -int 18
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" onlyWordsWithImages -bool true
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" isUppercase -bool true
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" letterVoice -string sounds
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" mathAllowAdd -bool true
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" mathAllowSub -bool false
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" wordBoxes \
+    -dict cat 3 cow 3 dog 3 fox 3 pig 3 sun 3
+  xcrun simctl spawn "$device" defaults write "$BUNDLE_ID" wordSeenCounts \
+    -dict cat 9 cow 8 dog 10 fox 7 pig 8 sun 9
+}
+
 capture() {
-  local dev=$1 out=$2
+  local device="$1" output="$2"
   shift 2
+  reset_synthetic_state "$device"
 
-  xcrun simctl terminate "$dev" "$BUNDLE" 2>/dev/null || true
-  for k in "${SCRATCH_KEYS[@]}"; do
-    xcrun simctl spawn "$dev" defaults delete "$BUNDLE" "$k" 2>/dev/null || true
-  done
-  xcrun simctl spawn "$dev" defaults write "$BUNDLE" hasSeenParentOnboarding -bool true
-
+  local pair key value type
   for pair in "$@"; do
-    local kv=${pair%%:*}
-    local typ=${pair##*:}
-    local k=${kv%%=*}
-    local v=${kv#*=}
-    case "$typ" in
-      bool)   xcrun simctl spawn "$dev" defaults write "$BUNDLE" "$k" -bool "$v" ;;
-      int)    xcrun simctl spawn "$dev" defaults write "$BUNDLE" "$k" -int "$v" ;;
-      float)  xcrun simctl spawn "$dev" defaults write "$BUNDLE" "$k" -float "$v" ;;
-      *)      xcrun simctl spawn "$dev" defaults write "$BUNDLE" "$k" -string "$v" ;;
-    esac
+    key="${pair%%=*}"
+    value="${pair#*=}"
+    type="${value##*:}"
+    value="${value%:*}"
+    write_default "$device" "$key" "$value" "$type"
   done
 
-  xcrun simctl launch "$dev" "$BUNDLE" >/dev/null
+  xcrun simctl launch "$device" "$BUNDLE_ID" \
+    -AppleLanguages '(en)' -AppleLocale en_US >/dev/null
   sleep 5
-  xcrun simctl io "$dev" screenshot "$out"
-  echo "  ✓ $(basename "$out") ($(file "$out" | grep -oE '[0-9]+ x [0-9]+'))"
+  xcrun simctl io "$device" screenshot "$output" >/dev/null
+  echo "captured $output"
 }
 
-shoot_set() {
-  local dev=$1 outdir=$2 size=$3
-  mkdir -p "$outdir"
-  rm -f "$outdir"/0*.png
+capture_set() {
+  local device="$1" output_dir="$2"
+  mkdir -p "$output_dir"
 
-  # 1. Home hub — the new Race-mode landing page (Practice + Race! cards).
-  capture "$dev" "$outdir/01-home-race.png"
-
-  # 2. Race in progress — Listen & Pick mid-game, healthy timer + good score.
-  capture "$dev" "$outdir/02-race-quiz.png" \
-    "screenshotStartRace=true:bool" \
-    "screenshotRaceTab=quiz:string" \
-    "screenshotRaceScore=12:int" \
-    "screenshotRaceRemaining=38:float"
-
-  # 3. Race — Count It. Always shows a math equation on first round
-  # (Memory Match starts face-down and reads as empty in a screenshot).
-  capture "$dev" "$outdir/03-race-count.png" \
-    "screenshotStartRace=true:bool" \
-    "screenshotRaceTab=count:string" \
-    "screenshotRaceScore=8:int" \
-    "screenshotRaceRemaining=26:float"
-
-  # 4. Race — Spell It under the clock.
-  capture "$dev" "$outdir/04-race-spell.png" \
-    "screenshotStartRace=true:bool" \
-    "screenshotRaceTab=spell:string" \
-    "screenshotRaceScore=16:int" \
-    "screenshotRaceRemaining=18:float"
-
-  # 5. End-of-race results overlay — score + stars + per-game breakdown.
-  capture "$dev" "$outdir/05-race-results.png" \
-    "screenshotStartRace=true:bool" \
-    "screenshotRaceTab=quiz:string" \
-    "screenshotRaceScore=24:int" \
-    "screenshotRaceRemaining=0:float" \
-    "screenshotRaceFinished=true:bool"
-
-  # 6. Practice — the reader, where kids learn without a clock.
-  capture "$dev" "$outdir/06-practice-reader.png" \
-    "screenshotHomePage=read:string" \
-    "screenshotLaunchGame=read:string" \
-    "screenshotWord=fox:string"
-
-  if [[ -n "$size" ]]; then
-    local w=${size%x*} h=${size#*x}
-    echo "  resizing to ${w}x${h}..."
-    for f in "$outdir"/0*.png; do
-      sips -z "$h" "$w" "$f" --out "$f" >/dev/null
-    done
-  fi
+  capture "$device" "$output_dir/01-home.png"
+  capture "$device" "$output_dir/02-read.png" \
+    screenshotLaunchGame=read:string screenshotWord=fox:string
+  capture "$device" "$output_dir/03-phonics-settings.png" \
+    screenshotLaunchGame=read:string screenshotWord=cat:string \
+    screenshotShowSettings=true:bool
+  capture "$device" "$output_dir/04-my-words.png" \
+    screenshotShowStickers=true:bool
+  capture "$device" "$output_dir/05-listen-and-pick.png" \
+    screenshotLaunchGame=quiz:string screenshotColorIndex=5:int \
+    screenshotGameWords=cat,dog,fox,pig:array screenshotQuizAnswer=fox:string
+  capture "$device" "$output_dir/06-spell-it.png" \
+    screenshotLaunchGame=spell:string screenshotColorIndex=3:int \
+    screenshotGameWord=cat:string screenshotSpellTypedCount=1:int
+  capture "$device" "$output_dir/07-race-results.png" \
+    screenshotStartRace=true:bool screenshotRaceTab=quiz:string \
+    screenshotRaceScore=24:int screenshotRaceRemaining=0:float \
+    screenshotRaceFinished=true:bool screenshotColorIndex=4:int \
+    screenshotGameWords=cat,dog,fox,pig:array screenshotQuizAnswer=fox:string
 }
 
-echo "== iPhone (1320x2868 -> 1290x2796) =="
-shoot_set "$IPHONE" "$OUT_IPHONE" "1290x2796"
+echo "Generating the Xcode project and building 1.12 (60) Release..."
+xcodegen generate
+xcodebuild -quiet -project 123words.xcodeproj -scheme Words123 \
+  -configuration Release -sdk iphonesimulator \
+  -destination "platform=iOS Simulator,id=$IPHONE_ID" \
+  -derivedDataPath "$DERIVED_DATA" CODE_SIGNING_ALLOWED=NO build
 
-echo "== iPad (2064x2752) =="
-shoot_set "$IPAD" "$OUT_IPAD" ""
-
-echo ""
-echo "== Final sizes =="
-for f in "$OUT_IPHONE"/0*.png "$OUT_IPAD"/0*.png; do
-  echo "$f: $(file "$f" | grep -oE '[0-9]+ x [0-9]+')"
+for device in "$IPHONE_ID" "$IPAD_ID"; do
+  xcrun simctl boot "$device" 2>/dev/null || true
+  open -gj -a Simulator --args -CurrentDeviceUDID "$device" 2>/dev/null || true
+  xcrun simctl bootstatus "$device" -b
+  xcrun simctl uninstall "$device" "$BUNDLE_ID" 2>/dev/null || true
+  xcrun simctl install "$device" "$APP_PATH"
+  xcrun simctl status_bar "$device" override \
+    --time '9:41' --batteryState charged --batteryLevel 100 \
+    --wifiBars 3 --cellularBars 4 2>/dev/null || true
 done
+
+echo "Capturing iPhone 17 Pro Max portrait..."
+capture_set "$IPHONE_ID" "$OUTPUT_ROOT/iPhone-6.9"
+
+echo "Capturing iPad Pro 13-inch portrait..."
+capture_set "$IPAD_ID" "$OUTPUT_ROOT/iPad-13"
+
+echo "Capture complete: $OUTPUT_ROOT"

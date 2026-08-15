@@ -249,6 +249,17 @@ struct SpellItGame: View {
         typed = []
         colorIndex = randomGameColor(excluding: colorIndex)
         keyboard = makeKeyboard(for: new)
+        if let count = UserDefaults.standard.object(forKey: "screenshotSpellTypedCount") as? NSNumber {
+            let prefix = Array(new.lowercased().prefix(max(0, min(new.count, count.intValue))))
+            var used = Set<Int>()
+            typed = prefix.compactMap { letter in
+                guard let index = keyboard.indices.first(where: {
+                    !used.contains($0) && keyboard[$0] == String(letter)
+                }) else { return nil }
+                used.insert(index)
+                return index
+            }
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             guard g == roundGen, shouldSpeakPrompt() else { return }
             speech.speak(new)
@@ -263,6 +274,9 @@ struct SpellItGame: View {
         for letter in alphabet.shuffled() where letters.count < letters.count + needed {
             if !letters.contains(letter) { letters.append(letter) }
             if letters.count >= w.count + needed { break }
+        }
+        if UserDefaults.standard.object(forKey: "screenshotSpellTypedCount") != nil {
+            return letters.sorted()
         }
         return letters.shuffled()
     }

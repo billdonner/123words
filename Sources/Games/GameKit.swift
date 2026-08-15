@@ -69,6 +69,9 @@ enum KidMetrics {
 }
 
 func randomGameColor(excluding: Int? = nil) -> Int {
+    if let fixed = UserDefaults.standard.object(forKey: "screenshotColorIndex") as? NSNumber {
+        return max(0, min(gameColors.count - 1, fixed.intValue))
+    }
     var idx: Int
     repeat { idx = Int.random(in: 0..<gameColors.count) }
     while idx == excluding && gameColors.count > 1
@@ -263,6 +266,12 @@ enum GameWordPool {
     static func random(length: Int? = nil,
                        excluding: String? = nil,
                        decodableOnly: Bool = false) -> String {
+        if let fixed = UserDefaults.standard.string(forKey: "screenshotGameWord"),
+           withImages.contains(fixed),
+           length.map({ fixed.count == $0 }) ?? true,
+           !decodableOnly || spellable.contains(fixed) {
+            return fixed
+        }
         var pool = decodableOnly ? spellable : withImages
         if let length { pool = pool.filter { $0.count == length } }
         if pool.isEmpty { pool = withImages }
@@ -276,6 +285,10 @@ enum GameWordPool {
     /// is too small it pads by cycling rather than under-filling.
     static func randomDistinct(count n: Int, length: Int? = nil) -> [String] {
         let need = max(n, 1)
+        if let fixed = UserDefaults.standard.stringArray(forKey: "screenshotGameWords") {
+            let valid = fixed.filter { withImages.contains($0) }
+            if valid.count >= need { return Array(valid.prefix(need)) }
+        }
         var pool = withImages
         if let length {
             let filtered = pool.filter { $0.count == length }
